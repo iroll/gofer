@@ -1,1 +1,1 @@
-A Chrome app providing a simple gopher client.
+A simple gopher client for Google Chrome.

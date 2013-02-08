@@ -2,16 +2,13 @@
   "manifest_version": 2,
   "name": "gofer",
   "version": "0.1",
-
-  "icons": {
-    "128": "icon_128.png",
-  }
-
   "app": {
     "background": {
-      "scripts": ["gofer.js"]
+      "scripts": ["launch.js"]
     }
-  }
+  },
+
+  "icons": { "128": "icon_128.png" },
 
   "permissions": 
     ["experimental",

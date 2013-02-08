@@ -4,11 +4,27 @@
 
   <head>
     <title>gofer viewer</title>
+    <link rel="stylesheet" href="viewer.css">
   <head>
 
   <body>
 
     <h1>gofer viewer</h1>
+
+    <div id="input">
+      <label for="host">Hostname:</label>
+      <input type="text" id="host">
+      <label for="port">Port:</label>
+      <input type="number" id="port">
+      <label for "query">Query:</label>
+      <input type="text" id="query">
+      <button id="connect">Connect</button>
+    </div>
+
+    <script src="tcp-client.js"></script>
+    <script src="gofer.js"></script>
+
+    <div id="output">Here it is.</div>
 
   </body>
 
