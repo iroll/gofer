@@ -17,6 +17,7 @@
 */
 
 //parse - parses data returned by TcpClient for display
+//todo: clean up the line headers, detect links
 
 function parse(input) {
   var lines = input.split('\n');
@@ -44,6 +45,7 @@ button.addEventListener('click', function () {
   var host = document.getElementById('host').value;
   var port = parseInt(document.getElementById('port').value, 10);
   var query = document.getElementById('query').value;
+  document.getElementById('output').innerHTML = ""; //clears the previous page
   connect(host, port, query);
 
 });
