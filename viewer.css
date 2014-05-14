@@ -1,3 +1,6 @@
 html {
   overflow-y: scroll; }
 
+#output {
+  font-family: monospace;
+  font-size: larger; }
