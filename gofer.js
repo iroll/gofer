@@ -55,10 +55,10 @@ function parse(input) {
 
 //connect - calls TcpClient. note that TcpClient appends CR to query
 
-function connect(host, port, query) {
+function connect(host, port, selector) {
   opensocket = new TcpClient(host, port);
   opensocket.connect(function() {
-    opensocket.sendMessage(query);
+    opensocket.sendMessage(selector);
     opensocket.addResponseListener(function(response) {
       var output = parse(response);
       document.getElementById('output').insertAdjacentHTML('beforeEnd', output);
@@ -72,8 +72,8 @@ button.addEventListener('click', function () {
 
   var host = document.getElementById('host').value;
   var port = parseInt(document.getElementById('port').value, 10);
-  var query = document.getElementById('query').value;
+  var selector = document.getElementById('selector').value;
   document.getElementById('output').innerHTML = ""; //clears the previous page
-  connect(host, port, query);
+  connect(host, port, selector);
 
 });

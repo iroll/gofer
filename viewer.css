@@ -1,10 +1,22 @@
 html {
-  overflow-y: scroll; }
+}
+
+#icon {
+  float: left;
+}
+
+#input {
+  font-family: 'Consolas' monospace;
+}
 
 #output {
   font-family: 'Consolas' monospace;
-  font-size: larger; }
-  
+  white-space: pre;
+  -webkit-user-select: text;
+  height: 500px;
+  overflow-y: scroll;
+}
+
 ._0 {
   color:blue;
 }
