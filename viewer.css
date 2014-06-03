@@ -2,5 +2,13 @@ html {
   overflow-y: scroll; }
 
 #output {
-  font-family: monospace;
+  font-family: 'Consolas' monospace;
   font-size: larger; }
+  
+._0 {
+  color:blue;
+}
+
+._1 {
+  color:red;
+}
