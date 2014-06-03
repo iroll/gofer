@@ -8,7 +8,7 @@
     }
   },
 
-  "icons": { "128": "icon_128.png" },
+  "icons": { "128": "gofer_128.png" },
 
   "permissions": 
     ["experimental",
