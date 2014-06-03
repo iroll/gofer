@@ -21,7 +21,10 @@
 
 function parse(input) {
   var lines = input.split('\n');
-  var data = lines.join('<br/>');
+  var number = length(lines);
+  var text = lines.join('<br/>');
+  var assembled = ['<H1>Lines returned: ', number, '</H1><br/>', text];
+  var data = assembled.join();
   return data;
 }
 
