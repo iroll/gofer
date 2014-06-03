@@ -17,16 +17,41 @@
 */
 
 //parse - parses data returned by TcpClient for display
-//todo: clean up the line headers, detect links
+//Lines returned by the gopher server consist of 4 tabbed elements:
+//display_string, selector_string, host_name, and port.
+//The first character of display_string is the item_type.
 
 function parse(input) {
-  var lines = input.split('\n');
-  var linecount = lines.length;
-  var text = lines.join('<br/>');
-  var assembled = ['<H1>Lines returned: ', linecount, '</H1><br/>', text];
-  var data = assembled.join('');
+  var lines = input.split('\n');            //split the input blob into lines
+  
+  var index;                                //setting up a loop to parse lines
+  var display_text = [];                    //what will eventually go to the screen
+  for (index = 0; index < lines.length; ++index){
+    var thisline = lines[index];            //grab a line
+    var elements = thisline.split('\t');    //break it into elements
+    var a = elements[0];
+    var item_type = a.charAt(0);            //gotta break the item_type and display_string
+    var display_string = a.substr(1);
+    var selector_string = elements[1];
+    var host_name = elements[2];
+    var port = elements[3];
+ 
+//now to handle the item_type cases
+
+    if (a.charAt(0) == 0) {
+      var rawline = ['<span class="_0">', display_string, '<\/span><br \/>'];
+    } else {
+      var rawline = [display_string, '<br \/>'];
+    }
+  
+    var cookedline = rawline.join('');
+    display_text.push(cookedline);
+  }
+  
+  var data = display_text.join('');
   return data;
 }
+
 
 //connect - calls TcpClient. note that TcpClient appends CR to query
 
