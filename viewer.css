@@ -1,16 +1,24 @@
-html {
+body {
+    font-family: 'Consolas' monospace;
 }
-
+    
 #icon {
   float: left;
 }
 
 #input {
-  font-family: 'Consolas' monospace;
 }
 
+input[id="port"] {
+    width:50px;
+}
+
+input[id="host"] {
+    width:150px;
+}
+
+
 #output {
-  font-family: 'Consolas' monospace;
   white-space: pre;
   -webkit-user-select: text;
   height: 500px;

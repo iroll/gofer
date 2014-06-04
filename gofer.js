@@ -18,7 +18,7 @@
 
 //parse - parses data returned by TcpClient for display
 //Lines returned by the gopher server consist of 4 tabbed elements:
-//display_string, selector_string, host_name, and port.
+//display_string, selector_string, host_name, and port_number.
 //The first character of display_string is the item_type.
 
 function parse(input) {
@@ -34,12 +34,12 @@ function parse(input) {
     var display_string = a.substr(1);
     var selector_string = elements[1];
     var host_name = elements[2];
-    var port = elements[3];
- 
-//now to handle the item_type cases
-
-    if (a.charAt(0) == 0) {
-      var rawline = ['<span class="_0">', display_string, '<\/span><br \/>'];
+    var port_number = elements[3];
+                                            //now to handle the item_type cases
+    if (item_type == 0) {                   //type 0: link to a Text File Transaction
+      var rawline = ['<span class="_0">', display_string, '</span><br>'];
+    } else if (item_type == 1) {            //type 1: link to a Menu Transaction
+      var rawline = ['<span class="_1">', display_string, '</span><br>'];
     } else {
       var rawline = [display_string, '<br \/>'];
     }
@@ -53,9 +53,13 @@ function parse(input) {
 }
 
 
-//connect - calls TcpClient. note that TcpClient appends CR to query
+//callout - calls TcpClient and refreshes the screen
 
-function connect(host, port, selector) {
+function callout(host, port, selector) {
+  document.getElementById('output').innerHTML = ""; //clears the previous page
+  document.getElementById('host').value = host;     //update the input fields with
+  document.getElementById('port').value = port;     //values that were passed to callout
+  document.getElementById('selector').value = selector;
   opensocket = new TcpClient(host, port);
   opensocket.connect(function() {
     opensocket.sendMessage(selector);
@@ -73,7 +77,20 @@ button.addEventListener('click', function () {
   var host = document.getElementById('host').value;
   var port = parseInt(document.getElementById('port').value, 10);
   var selector = document.getElementById('selector').value;
-  document.getElementById('output').innerHTML = ""; //clears the previous page
-  connect(host, port, selector);
+  callout(host, port, selector);
 
 });
+
+//power the links in the viewer
+//span.onclick = callout(host,port,selector);
+
+
+
+
+
+
+
+
+
+
+
