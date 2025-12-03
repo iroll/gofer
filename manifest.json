@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "gofer",
+  "version": "0.1",
+  "app": {
+    "background": {
+      "scripts": ["launch.js"]
+    }
+  },
+
+  "icons": { "128": "gofer_128.png" },
+
+  "permissions": 
+    ["experimental",
+      {"socket": 
+        ["tcp-connect:*:*"]  
+      }
+    ]
+}
