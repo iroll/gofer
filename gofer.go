@@ -147,13 +147,15 @@ func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector str
 		<head>
 			<title>gofer - %s:%s%s</title>
 			<style>
-				body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.4; }
-				pre { white-space: pre-wrap; word-break: break-word; font-family: monospace; }
+				<!--
+				body { font-family: monospace; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.4; }
+				/* pre { white-space: pre-wrap; word-break: break-word; font-family: monospace; } */
 				.gopher-link { display: block; margin: 4px 0; }
 				/* Reduced width of gopher-type for better flow */
 				.gopher-type { font-weight: bold; margin-right: 8px; color: #666; width: 25px; display: inline-block; }
 				#input-form { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9; }
 				#input-form input { margin-right: 10px; padding: 5px; border: 1px solid #ddd; }
+				-->
 			</style>
 		</head>
 		<body>
@@ -161,13 +163,12 @@ func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector str
 		<div id="input-form">
 			<form action="/" method="GET">
 				<label for="host">Hostname:</label>
-				<input type="text" id="host" name="host" placeholder="e.g. gopher.floodgap.com" %s>
+				<input type="text" id="host" name="host" placeholder="freeshell.org" %s>
 				<label for="port">Port:</label>
 				<input type="number" id="port" name="port" placeholder="70" %s style="width: 50px;">
 				<label for="selector">Selector:</label>
 				<input type="text" id="selector" name="selector" placeholder="/" %s style="width: 250px;">
 				<button type="submit">Go!</button>
-				<p style="font-size: 0.8em; margin: 5px 0 0;">(Current: %s:%s%s)</p>
 			</form>
 		</div>
 
@@ -181,11 +182,9 @@ func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector str
 		// Arguments 4, 5, 6: For the input value attributes (formHostValue, etc.)
 		formHostValue, formPortValue, formSelectorValue,
 
-		// Arguments 7, 8, 9: For the <p> status message inside the form
-		currentHost, currentPort, currentSelector,
-
-		// Arguments 10, 11, 12: For the new <h2> line (THIS IS THE MISSING PART)
+		// Arguments 10, 11, 12: For the new <h1> line
 		currentHost, currentPort, currentSelector))
+
 	// --- End of the argument list ---
 
 	// Process the lines from the Gopher response
@@ -193,38 +192,43 @@ func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector str
 
 	for _, line := range lines {
 		// A Gopher menu ends with a single '.' on a line, but typically the connection closes.
-		if line == "" || line == "." {
+		trimmedline := strings.TrimSpace(line)
+		if trimmedline == "" || trimmedline == "." {
 			continue
 		}
 
-		// Gopher menu line format: TypeDisplayString\tSelector\tHost\tPort
+		// Gopher line format: TypeDisplayString\tSelector\tHost\tPort
 		fields := strings.Split(line, "\t")
 
+		var itemType byte
+		var displayString, selector, host, port string
+
+		// If the line is malformed, assume itemType 3
+
 		if len(fields) < 4 {
-			// If the first line doesn't conform to the menu structure, assume it's body text (Type 0).
-			if len(fields[0]) > 0 && fields[0][0] != '1' && fields[0][0] != '0' && fields[0][0] != 'i' {
-				html.WriteString(fmt.Sprintf("<h2>Document Text</h2><pre>%s</pre>", rawGopherData))
-				break // Stop processing as we've displayed the whole document body
-			}
-			continue
+			itemType = '3'
+			displayString = "Malformed Line (Type 3 Error): " + strings.TrimSpace(line)
+			selector = "/"
+			host = currentHost
+			port = currentPort
+		} else {
+
+			// 1. Extract Item Type and Display String
+			itemType = fields[0][0]
+			displayString = fields[0][1:]
+
+			// 2. Extract Selector, Host, and Port
+			selector = fields[1]
+			host = fields[2]
+			port = fields[3]
+
 		}
 
-		// 1. Extract Item Type and Display String
-		itemType := fields[0][0]
-		displayString := fields[0][1:]
-
-		// 2. Extract Selector, Host, and Port
-		selector := fields[1]
-		host := fields[2]
-		port := fields[3]
-
 		displayString = strings.TrimSpace(displayString)
+
 		if displayString == "" {
 			continue
 		}
-
-		// Use url.QueryEscape for safety, essential for preserving selectors like spaces
-		safeSelector := url.QueryEscape(selector)
 
 		var typeIcon string
 
@@ -233,8 +237,9 @@ func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector str
 		case '0', '1': // Linkable items: Text file (0) or Menu (1)
 			typeIcon = fmt.Sprintf("[%c]", itemType)
 
-			// Build the link back to our local Go server
-			link := fmt.Sprintf("<a href=\"/?host=%s&port=%s&selector=%s\">%s</a>", host, port, safeSelector, displayString)
+			// Build the link back to the gofer html engine
+			link := fmt.Sprintf("<a href=\"/?host=%s&port=%s&selector=%s\">%s</a>", host, port, selector, displayString)
+			// future gopher version link := fmt.Sprintf("<a href=\"gopher://%s:%s/%c%s\">%s</a>", host, port, itemType, selector, displayString)
 			html.WriteString(fmt.Sprintf("<div class=\"gopher-link\"><span class=\"gopher-type\">%s</span> %s</div>\n", typeIcon, link))
 
 		case '3': // Error
@@ -245,8 +250,7 @@ func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector str
 			typeIcon = "[INF]"
 			html.WriteString(fmt.Sprintf("<div class=\"gopher-link\"><span class=\"gopher-type\" style=\"color: gray;\">%s</span> %s</div>\n", typeIcon, displayString))
 
-		default:
-			// All other types (4, 5, 7, 9, I, g, T, etc.) are treated as informational text
+		default: // All other types (4, 5, 7, 9, I, g, T, etc.) are treated as informational text
 			typeIcon = "[?]"
 			html.WriteString(fmt.Sprintf("<div class=\"gopher-link\"><span class=\"gopher-type\" style=\"color: gray;\">%s</span> %s</div>\n", typeIcon, displayString))
 		}
@@ -346,6 +350,7 @@ func handleFocus(w http.ResponseWriter, r *http.Request) {
 
 	// Use our existing serveGopher logic (which uses the query params)
 	// We must separate host and port from u.Host
+
 	host := u.Hostname()
 	port := u.Port()
 	if port == "" {
