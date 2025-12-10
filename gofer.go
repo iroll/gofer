@@ -25,20 +25,20 @@ const (
 	FOCUS_ENDPOINT            = "/focus"
 )
 
-// --- Inactivity Monitor Logic ---
+// --- Inactivity Monitor ---
+// a js heartbeat on 55 second intervals from a formatted HTML page keeps gofer alive
+// otherwise, after 60 seconds of inactivity it terminates
 
 var lastRequestTime = time.Now()
 var shutdownMux sync.Mutex
 
-// updateActivity resets the inactivity timer. Called by all HTTP handlers.
-func updateActivity() {
+func updateActivity() { // resets the inactivity timer. Called by all HTTP handlers.
 	shutdownMux.Lock()
 	lastRequestTime = time.Now()
 	shutdownMux.Unlock()
 }
 
-// monitorInactivity checks the time since the last request and shuts down if timed out.
-func monitorInactivity() {
+func monitorInactivity() { // checks the time since the last request and shuts down if timed out.
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
@@ -96,11 +96,11 @@ func gopherRequest(host string, port string, selector string) (string, error) {
 		return "", fmt.Errorf("failed to write selector to socket: %w", err)
 	}
 
-	// Read the entire response
+	// Buffer the entire response
 	reader := bufio.NewReader(conn)
 	var responseBuilder strings.Builder
 
-	// Read until EOF or timeout
+	// Read buffer and parse lines until EOF or timeout
 	for {
 		line, err := reader.ReadString('\n')
 		if len(line) > 0 {
@@ -129,17 +129,15 @@ func gopherRequest(host string, port string, selector string) (string, error) {
 
 // --- HTML Formatting Component ---
 
-// parseAndFormat takes raw Gopher data and turns it into minimal HTML.
+// formatMenuHTML	 takes raw Gopher data and turns it into minimal HTML.
 // It requires the current host, port, and selector for form pre-filling and links.
-func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector string) string {
+func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector string) string {
 
 	// Start with the HTML boilerplate, including the input form at the top
 	var html strings.Builder
 
-	// Inject current values into the form for persistence and debugging
-	formHostValue := fmt.Sprintf(`value="%s"`, currentHost)
-	formPortValue := fmt.Sprintf(`value="%s"`, currentPort)
-	formSelectorValue := fmt.Sprintf(`value="%s"`, currentSelector)
+	// 1. Construct the current Gopher URI for the input field's value
+	currentGopherURI := fmt.Sprintf("gopher://%s:%s%s", currentHost, currentPort, currentSelector)
 
 	html.WriteString(fmt.Sprintf(`
 		<!DOCTYPE html>
@@ -147,43 +145,48 @@ func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector str
 		<head>
 			<title>gofer - %s:%s%s</title>
 			<style>
-				<!--
-				body { font-family: monospace; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.4; }
-				/* pre { white-space: pre-wrap; word-break: break-word; font-family: monospace; } */
-				.gopher-link { display: block; margin: 4px 0; }
-				/* Reduced width of gopher-type for better flow */
-				.gopher-type { font-weight: bold; margin-right: 8px; color: #666; width: 25px; display: inline-block; }
-				#input-form { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9; }
-				#input-form input { margin-right: 10px; padding: 5px; border: 1px solid #ddd; }
-				-->
+			
+				:root { color-scheme: light dark; }
+
+				body { 
+					font-family: monospace;
+					line-height: 1.4;
+					width: 100ch; 
+					margin: 0 auto; 
+				}
+				
+				.gopher-link { 
+					margin: 0;
+				 	whitespace: pre;
+				} 
+
+				#address-bar { 
+					width: 100%%;
+					max-width: 80ch;
+					margin: 1ch 0 1ch 0;
+				}
+
+				input[type="text"] { 
+					font-family: monospace;
+					font-size: 1.5em;
+					font-weight: bold;
+					outline: 0;
+					width: 100%%; 
+  				}	
+
 			</style>
 		</head>
 		<body>
 		
-		<div id="input-form">
-			<form action="/" method="GET">
-				<label for="host">Hostname:</label>
-				<input type="text" id="host" name="host" placeholder="freeshell.org" %s>
-				<label for="port">Port:</label>
-				<input type="number" id="port" name="port" placeholder="70" %s style="width: 50px;">
-				<label for="selector">Selector:</label>
-				<input type="text" id="selector" name="selector" placeholder="/" %s style="width: 250px;">
-				<button type="submit">Go!</button>
-			</form>
+		<div id="address-bar">
+				<form action="/" method="GET">
+				<input type="text" id="uri" name="uri" value="%s" placeholder="gopher://freeshell.org:70/">			
+				</form>
 		</div>
 
-		<h1>gopher://%s:%s%s</h1>
-
 	`,
-		// --- Start of the argument list ---
-		// Arguments 1, 2, 3: For the <title> tag
-		currentHost, currentPort, currentSelector,
-
-		// Arguments 4, 5, 6: For the input value attributes (formHostValue, etc.)
-		formHostValue, formPortValue, formSelectorValue,
-
-		// Arguments 10, 11, 12: For the new <h1> line
-		currentHost, currentPort, currentSelector))
+		// Arguments 1, 2, 3, 4: For the title and the URI input value
+		currentHost, currentPort, currentSelector, currentGopherURI))
 
 	// --- End of the argument list ---
 
@@ -191,10 +194,14 @@ func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector str
 	lines := strings.Split(rawGopherData, "\n")
 
 	for _, line := range lines {
-		// A Gopher menu ends with a single '.' on a line, but typically the connection closes.
-		trimmedline := strings.TrimSpace(line)
-		if trimmedline == "" || trimmedline == "." {
+		// Check for empty lines
+		if strings.TrimSpace(line) == "" {
 			continue
+		}
+
+		// Check for Gopher EOF
+		if strings.TrimSpace(line) == "." {
+			break
 		}
 
 		// Gopher line format: TypeDisplayString\tSelector\tHost\tPort
@@ -230,36 +237,45 @@ func parseAndFormat(rawGopherData, currentHost, currentPort, currentSelector str
 			continue
 		}
 
-		var typeIcon string
+		// 1. Generate the type icon string (e.g., "[1]", "[3]", "[?]")
+		typeIcon := fmt.Sprintf("[%c]", itemType)
+
+		// 2. Pad the icon string to 5 characters total for columnar alignment.
+		// This relies on the monospace font.
+		typeIconPadded := fmt.Sprintf("%-5s", typeIcon)
 
 		// 3. Determine HTML output based on the MINIMAL set of Item Types
 		switch itemType {
-		case '0', '1': // Linkable items: Text file (0) or Menu (1)
-			typeIcon = fmt.Sprintf("[%c]", itemType)
 
+		case '0': // Linkable item: Text file (Type 0)
+			typeIcon = "[TXT]"
 			// Build the link back to the gofer html engine
-			link := fmt.Sprintf("<a href=\"/?host=%s&port=%s&selector=%s\">%s</a>", host, port, selector, displayString)
+			link := fmt.Sprintf("<a href=\"/?type=%c&host=%s&port=%s&selector=%s\">%s</a>", itemType, host, port, url.QueryEscape(selector), displayString)
 			// future gopher version link := fmt.Sprintf("<a href=\"gopher://%s:%s/%c%s\">%s</a>", host, port, itemType, selector, displayString)
-			html.WriteString(fmt.Sprintf("<div class=\"gopher-link\"><span class=\"gopher-type\">%s</span> %s</div>\n", typeIcon, link))
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIconPadded, link))
+
+		case '1': // Linkable items: Menu (Type 1)
+			typeIcon = "1"
+			// Build the link back to the gofer html engine
+			link := fmt.Sprintf("<a href=\"/?type=%c&host=%s&port=%s&selector=%s\">%s</a>", itemType, host, port, url.QueryEscape(selector), displayString)
+			// future gopher version link := fmt.Sprintf("<a href=\"gopher://%s:%s/%c%s\">%s</a>", host, port, itemType, selector, displayString)
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIconPadded, link))
 
 		case '3': // Error
 			typeIcon = "[ERR]"
-			html.WriteString(fmt.Sprintf("<div class=\"gopher-link\"><span class=\"gopher-type\" style=\"color: red;\">%s</span> %s</div>\n", typeIcon, displayString))
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: red;\">%s</span>%s</p>\n", typeIconPadded, displayString))
 
 		case 'i': // Informational text
-			typeIcon = "[INF]"
-			html.WriteString(fmt.Sprintf("<div class=\"gopher-link\"><span class=\"gopher-type\" style=\"color: gray;\">%s</span> %s</div>\n", typeIcon, displayString))
+			typeIcon = "[i]"
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: gray;\">%s</span>%s</p>\n", typeIconPadded, displayString))
 
 		default: // All other types (4, 5, 7, 9, I, g, T, etc.) are treated as informational text
 			typeIcon = "[?]"
-			html.WriteString(fmt.Sprintf("<div class=\"gopher-link\"><span class=\"gopher-type\" style=\"color: gray;\">%s</span> %s</div>\n", typeIcon, displayString))
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: gray;\">%s</span>%s</p>\n", typeIconPadded, displayString))
 		}
 	}
 
-	// Add a minimal JS heartbeat to keep the server alive while the page is open.
-	// SHUTDOWN_TIMEOUT_SECONDS is 60s, so 55s ensures a successful ping.
-	// If the ping fails, the server is dead, so the script stops.
-	// This maintains the single-tab UX and allows the server to shut down when the user is truly idle.
+	// js heartbeat for the inactivity monitor
 	html.WriteString(fmt.Sprintf(`
 		<script>
 		  setInterval(function() {
@@ -289,33 +305,87 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 	updateActivity() // Reset the inactivity timer
 
 	query := r.URL.Query()
+
+	// 1. Check for submission from the new single-field URI bar
+	gopherURI := query.Get("uri")
+
+	// 2. Initialize variables (or use values from old menu link clicks)
+	gopherTypeQuery := query.Get("type")
 	host := query.Get("host")
 	port := query.Get("port")
 	selector := query.Get("selector")
 
-	// Set defaults if missing
-	if host == "" {
-		host = DEFAULT_GOPHER_HOST
-	}
-	if port == "" {
-		port = DEFAULT_GOPHER_PORT
-	}
-	if selector == "" {
-		selector = "/"
+	if gopherURI != "" {
+		u, err := url.Parse(gopherURI)
+		if err == nil && (u.Scheme == "gopher" || u.Scheme == "") {
+			// Overwrite host, port, and selector from the parsed URI
+
+			host = u.Hostname()
+
+			port = u.Port()
+			if port == "" {
+				port = DEFAULT_GOPHER_PORT
+			}
+
+			selector = strings.TrimPrefix(u.Path, "/")
+		}
+	} else {
+		// Only apply defaults if navigating via an old-style link or direct "/" load
+		if host == "" {
+			host = DEFAULT_GOPHER_HOST
+		}
+		if port == "" {
+			port = DEFAULT_GOPHER_PORT
+		}
+		if selector == "" {
+			selector = "/"
+		}
 	}
 
 	rawResponse, err := gopherRequest(host, port, selector)
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
 	if err != nil {
-		http.Error(w, fmt.Sprintf("<h1>Connection Error</h1><p>Failed to retrieve Gopher resource from %s:%s%s. Details: %s</p>", host, port, selector, err.Error()), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		http.Error(w, fmt.Sprintf("<!DOCTYPE html><html><h1>Connection Error</h1><p>Failed to retrieve Gopher resource from %s:%s%s. Details: %s</p><html>", host, port, selector, err.Error()), http.StatusInternalServerError)
 		return
 	}
 
-	// Now passing all current params to the formatter
-	htmlContent := parseAndFormat(rawResponse, host, port, selector)
-	w.Write([]byte(htmlContent))
+	// Determine the Gopher type requested.
+	var gopherType byte
+	if len(gopherTypeQuery) > 0 {
+		gopherType = gopherTypeQuery[0]
+	} else {
+		// Fallback for direct browser entry or older links (assume menu)
+		gopherType = '1'
+	}
+
+	// Handle content based on Gopher Type
+	switch gopherType {
+
+	case '0', 'i': // Text File (Type 0) or Informational Text (Type i)
+		// Type 0 is sent to the browser as raw text with the correct HTTP header.
+		// Type 'i' is only used in a menu and should not be requested directly, but treat it as text/plain if it is.
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Write([]byte(rawResponse))
+
+	case '1': // Menu (Type 1)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		htmlContent := formatMenuHTML(rawResponse, host, port, selector)
+		w.Write([]byte(htmlContent))
+
+	case '9': // Binary File (Type 9)
+		// For Type 9, we set an octet-stream header which will typically trigger a save/download prompt.
+		// This is the correct behavior for binaries.
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", "binary_file.dat"))
+		w.Write([]byte(rawResponse))
+
+	default: // All other types (images, sounds, etc.)
+		// Default to displaying as plain text or informing the user of the unhandled type.
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Write([]byte(fmt.Sprintf("--- Unhandled Gopher Type %c Content ---\n\n", gopherType)))
+		w.Write([]byte(rawResponse))
+	}
 }
 
 // handleFocus is called by a newly launched 'gofer' process (PID 2) to signal
