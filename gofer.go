@@ -1,3 +1,7 @@
+// gofer 0.5
+// (C) 2025 Isaac Roll
+// See github.com/iroll/gofer for license
+
 package main
 
 import (
@@ -116,7 +120,7 @@ func gopherRequest(host string, port string, selector string) (string, error) {
 
 			// 2. Check for net.Error Timeout
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-				break // Treat timeout as a successful connection termination
+				return "", fmt.Errorf("socket timeout while reading from %s", address)
 			}
 
 			// 3. Any other error is a genuine failure
@@ -157,7 +161,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 				
 				.gopher-link { 
 					margin: 0;
-				 	whitespace: pre;
+				 	white-space: pre;
 				} 
 
 				#address-bar { 
@@ -228,7 +232,6 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			selector = fields[1]
 			host = fields[2]
 			port = fields[3]
-
 		}
 
 		displayString = strings.TrimSpace(displayString)
@@ -237,12 +240,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			continue
 		}
 
-		// 1. Generate the type icon string (e.g., "[1]", "[3]", "[?]")
-		typeIcon := fmt.Sprintf("[%c]", itemType)
-
-		// 2. Pad the icon string to 5 characters total for columnar alignment.
-		// This relies on the monospace font.
-		typeIconPadded := fmt.Sprintf("%-5s", typeIcon)
+		typeIcon := ""
 
 		// 3. Determine HTML output based on the MINIMAL set of Item Types
 		switch itemType {
@@ -252,26 +250,51 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			// Build the link back to the gofer html engine
 			link := fmt.Sprintf("<a href=\"/?type=%c&host=%s&port=%s&selector=%s\">%s</a>", itemType, host, port, url.QueryEscape(selector), displayString)
 			// future gopher version link := fmt.Sprintf("<a href=\"gopher://%s:%s/%c%s\">%s</a>", host, port, itemType, selector, displayString)
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIconPadded, link))
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIcon, link))
 
 		case '1': // Linkable items: Menu (Type 1)
-			typeIcon = "1"
+			typeIcon = "[ 1 ]"
 			// Build the link back to the gofer html engine
 			link := fmt.Sprintf("<a href=\"/?type=%c&host=%s&port=%s&selector=%s\">%s</a>", itemType, host, port, url.QueryEscape(selector), displayString)
 			// future gopher version link := fmt.Sprintf("<a href=\"gopher://%s:%s/%c%s\">%s</a>", host, port, itemType, selector, displayString)
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIconPadded, link))
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIcon, link))
+
+		case '2': // PH/CSO directory server entry
+			typeIcon = "[PHc]"
+
+			// Host/port from the Gopher line
+			phHost := host
+			phPort := port
+			if phPort == "" {
+				phPort = "105" // PH default
+			}
+
+			// Build base PH URL: /ph:host:port
+			phURL := fmt.Sprintf("/ph:%s:%s", phHost, phPort)
+
+			// Only attach selector parameter if the gopher entry actually had one
+			if selector != "" {
+				phURL = fmt.Sprintf("%s?selector=%s",
+					phURL,
+					url.QueryEscape(selector),
+				)
+			}
+
+			link := fmt.Sprintf("<a href=\"%s\">%s</a>", phURL, displayString)
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIcon, link))
+			continue
 
 		case '3': // Error
 			typeIcon = "[ERR]"
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: red;\">%s</span>%s</p>\n", typeIconPadded, displayString))
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: red;\">%s</span>%s</p>\n", typeIcon, displayString))
 
 		case 'i': // Informational text
-			typeIcon = "[i]"
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: gray;\">%s</span>%s</p>\n", typeIconPadded, displayString))
+			typeIcon = "[ i ]"
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: gray;\">%s</span>%s</p>\n", typeIcon, displayString))
 
 		default: // All other types (4, 5, 7, 9, I, g, T, etc.) are treated as informational text
-			typeIcon = "[?]"
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: gray;\">%s</span>%s</p>\n", typeIconPadded, displayString))
+			typeIcon = "[ ? ]"
+			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: gray;\">%s</span>%s</p>\n", typeIcon, displayString))
 		}
 	}
 
@@ -345,8 +368,13 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 	rawResponse, err := gopherRequest(host, port, selector)
 
 	if err != nil {
+		// Connection Error - a synthetic type-3 line for the formatter
+		synthetic := fmt.Sprintf("3Connection failed: %s\t/\t%s\t%s\n.\n",
+			err.Error(), host, port)
+
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		http.Error(w, fmt.Sprintf("<!DOCTYPE html><html><h1>Connection Error</h1><p>Failed to retrieve Gopher resource from %s:%s%s. Details: %s</p><html>", host, port, selector, err.Error()), http.StatusInternalServerError)
+		htmlContent := formatMenuHTML(synthetic, host, port, selector)
+		w.Write([]byte(htmlContent))
 		return
 	}
 
@@ -480,7 +508,23 @@ func main() {
 		fmt.Printf("gofer (PID %d) is already running on port %s. Sending Re-Focus signal.\n", os.Getpid(), LOCAL_SERVER_PORT)
 
 		// Send a request to PID 1 to handle the new Gopher URI
-		targetURL := fmt.Sprintf("http://localhost:%s%s?uri=%s", LOCAL_SERVER_PORT, FOCUS_ENDPOINT, url.QueryEscape(os.Args[1]))
+		// If we were launched with a Gopher URL, forward it. Otherwise request a generic focus.
+		var targetURL string
+		if len(os.Args) > 1 {
+			targetURL = fmt.Sprintf(
+				"http://localhost:%s%s?uri=%s",
+				LOCAL_SERVER_PORT,
+				FOCUS_ENDPOINT,
+				url.QueryEscape(os.Args[1]),
+			)
+		} else {
+			// No arg provided; request focus without a URI.
+			targetURL = fmt.Sprintf(
+				"http://localhost:%s%s",
+				LOCAL_SERVER_PORT,
+				FOCUS_ENDPOINT,
+			)
+		}
 
 		resp, err := http.Get(targetURL)
 		if err != nil {
