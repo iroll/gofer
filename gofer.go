@@ -137,7 +137,7 @@ func gopherRequest(host string, port string, selector string) (string, error) {
 
 // formatMenuHTML takes raw Gopher data and turns it into minimal HTML.
 // It requires the current host, port, and selector for form pre-filling and links.
-func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector string) string {
+func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector string, embedded bool) string {
 
 	// Start with the HTML boilerplate, including the input form at the top
 	var html strings.Builder
@@ -145,7 +145,10 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 	// 1. Construct the current Gopher URI for the input field's value
 	currentGopherURI := fmt.Sprintf("%s:%s%s", currentHost, currentPort, currentSelector)
 
-	html.WriteString(fmt.Sprintf(`
+	if !embedded {
+		html.WriteString(fmt.Sprintf(`
+		
+	
 		<!DOCTYPE html>
 		<html>
 		<head>
@@ -183,7 +186,6 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
     			}
 
 				.query-label {
-					font-family: monospace;
 					font-size: 1.5em;
 					font-weight: bold;
 					padding: 0 0 0 0;
@@ -194,8 +196,12 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 					font-family: monospace;
 					font-size: 1.5em;
 					font-weight: bold;
-					outline: 0;
-					width: 100%%; 
+
+					flex-grow: 1;
+					min-width: 0; 	
+
+					outline: 0;	
+					caret-style: underscore;
   				}	
 
 			</style>
@@ -210,8 +216,9 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 		</div>
 
 	`,
-		// Arguments 1, 2, 3, 4: For the title and the URI input value
-		currentHost, currentPort, currentSelector, currentGopherURI))
+			// Arguments 1, 2, 3, 4: For the title and the URI input value
+			currentHost, currentPort, currentSelector, currentGopherURI))
+	}
 
 	// --- End of the argument list ---
 
@@ -319,11 +326,29 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			typeIcon = "[ERR]"
 			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: red;\">%s</span>%s</p>\n", typeIcon, displayString))
 
+		case '7': // Searchable Index (Type 7)
+			typeIcon = "[ 7 ]"
+
+			// Route to search handler (to be implemented)
+			link := fmt.Sprintf(
+				"<a href=\"/search?host=%s&port=%s&selector=%s\">%s</a>",
+				host,
+				port,
+				url.QueryEscape(selector),
+				displayString,
+			)
+
+			html.WriteString(fmt.Sprintf(
+				"<p class=\"gopher-link\">%s%s</p>\n",
+				typeIcon,
+				link,
+			))
+
 		case 'i': // Informational text
 			typeIcon = "[ i ]"
 			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: gray;\">%s</span>%s</p>\n", typeIcon, displayString))
 
-		default: // All other types (4, 5, 7, 9, I, g, T, etc.) are treated as informational text
+		default: // All other types (4, 5, 9, I, g, T, etc.) are treated as informational text
 			typeIcon = "[ ? ]"
 			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: gray;\">%s</span>%s</p>\n", typeIcon, displayString))
 		}
@@ -341,7 +366,9 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 		</script>
 	`, LOCAL_SERVER_PORT))
 
-	html.WriteString(`</body></html>`)
+	if !embedded {
+		html.WriteString(`</body></html>`)
+	}
 	return html.String()
 }
 
@@ -411,7 +438,7 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 			err.Error(), host, port)
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		htmlContent := formatMenuHTML(synthetic, host, port, selector)
+		htmlContent := formatMenuHTML(synthetic, host, port, selector, false)
 		w.Write([]byte(htmlContent))
 		return
 	}
@@ -436,7 +463,7 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 
 	case '1': // Menu (Type 1)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		htmlContent := formatMenuHTML(rawResponse, host, port, selector)
+		htmlContent := formatMenuHTML(rawResponse, host, port, selector, false)
 		w.Write([]byte(htmlContent))
 
 	case '9': // Binary File (Type 9)
@@ -593,7 +620,8 @@ func main() {
 	http.HandleFunc("/", serveGopher)
 	http.HandleFunc(FOCUS_ENDPOINT, handleFocus)   // handler for PID 2 signals
 	http.HandleFunc("/heartbeat", handleHeartbeat) // handler for keep-alive ping
-	http.HandleFunc("/ph/", handlePHEntry)         // handler for ph_client and cso directorys
+	http.HandleFunc("/ph/", handlePHEntry)         // handler for type 2 ph_client and cso directorys
+	http.HandleFunc("/search", HandleSearch)       // handler for type 7 searches
 
 	// 3. Launch the browser to the initial URL (parsed from CLI or default)
 	launchBrowser(initialGopherURL)

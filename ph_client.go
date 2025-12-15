@@ -162,6 +162,7 @@ func formatPHPage(host, port, content, returnURL string) string {
 		<head>
 			<title>gofer PhClient - %s:%s</title>
 			<style>
+
 				:root { color-scheme: light dark; }
 
 				body {
@@ -169,12 +170,11 @@ func formatPHPage(host, port, content, returnURL string) string {
 					line-height: 1.4;
 					width: 100ch;
 					margin: 0 auto;
+					padding-bottom: 1ch;
 				}
 					
 				.return { 
-					width: 100%%;
 					margin-top: 1ch;
-					text-align: left;
 				} 
 
 				.query-bar {
@@ -189,7 +189,6 @@ func formatPHPage(host, port, content, returnURL string) string {
     			}
 
 				.query-label {
-					font-family: monospace;
 					font-size: 1.5em;
 					font-weight: bold;
 					padding: 0 1ch 0 0;
@@ -205,9 +204,7 @@ func formatPHPage(host, port, content, returnURL string) string {
 					min-width: 0; 
 
 					outline: 0;
-					padding: 0 0 0 0;
 					caret-style: underscore;
-					caret-color: black;
 				}
 
 				pre {
