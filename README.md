@@ -16,8 +16,8 @@ The basic list of Gopher item types is provided below, as well as their current 
 
 | Type Code | Description | Status |
 | :---: | :--- | :--- |
-| **0** | File | **[check!]** |
-| **1** | Directory | **[check!]** |
+| **0** | Text File | **[check!]** |
+| **1** | Menu or Directory | **[check!]** |
 | **2** | Ph/CSO Server | **[check! connect and search]** |
 | **3** | Error | **[check!]** |
 | **4** | BinHexed Macintosh file | |
