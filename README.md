@@ -6,6 +6,12 @@ As of 2025, mainstream browsers have long since dumped Gopher compatibility, lea
 
 Gofer for Gopher is written in **Go** for obvious reasons; namely, to provide a compiled package for easy distribution and avoidance of dependencies (i.e., Python).
 
+Usage: a macos executable - gofer - is currently provided; otherwise, gofer will need to be built from the provided source. Gofer can be called from the command line, e.g.:
+
+gofer gopher://freeshell.org:70
+
+... and a default browser window will open. Currently gofer will close after 60s of inactivity. Alternatively, your OS or browser may let you register gopher:// links to point to gofer, which eliminates the need for command line launches or timeouts. Packaged releases for macos, debian, and windows that will automatically register gopher:// are a future goal.
+
 The basic list of Gopher item types is provided below, as well as their current implementation status:
 
 | Type Code | Description | Status |
