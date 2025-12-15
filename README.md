@@ -25,7 +25,7 @@ The basic list of Gopher item types is provided below, as well as their current 
 | **6** | UNIX uuencoded file | |
 | **7** | Index-Search server |**[check!]** |
 | **8** | Telnet session | |
-| **9** | Binary file (nonspecific) | |
+| **9** | Binary file (nonspecific) | **[check!]**|
 | **+** | Redundant server | |
 | **T** | TN3270 session | |
 | **g** | A GIF format graphics file | |
