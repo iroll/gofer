@@ -1,4 +1,6 @@
 // gofer 0.5
+// a gopher helper for web browsers
+// hewing as close to RFC 1436 (1993) as practical
 // (C) 2025 Isaac Roll
 // See github.com/iroll/gofer for license
 
@@ -133,7 +135,7 @@ func gopherRequest(host string, port string, selector string) (string, error) {
 
 // --- HTML Formatting Component ---
 
-// formatMenuHTML	 takes raw Gopher data and turns it into minimal HTML.
+// formatMenuHTML takes raw Gopher data and turns it into minimal HTML.
 // It requires the current host, port, and selector for form pre-filling and links.
 func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector string) string {
 
@@ -141,7 +143,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 	var html strings.Builder
 
 	// 1. Construct the current Gopher URI for the input field's value
-	currentGopherURI := fmt.Sprintf("gopher://%s:%s%s", currentHost, currentPort, currentSelector)
+	currentGopherURI := fmt.Sprintf("%s:%s%s", currentHost, currentPort, currentSelector)
 
 	html.WriteString(fmt.Sprintf(`
 		<!DOCTYPE html>
@@ -157,6 +159,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 					line-height: 1.4;
 					width: 100ch; 
 					margin: 0 auto; 
+					padding-bottom: 1ch;
 				}
 				
 				.gopher-link { 
@@ -164,10 +167,27 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 				 	white-space: pre;
 				} 
 
-				#address-bar { 
+				.gopher-link:last-child {
+					margin-bottom: 1ch;
+				}
+
+				.query-bar {
 					width: 100%%;
-					max-width: 80ch;
-					margin: 1ch 0 1ch 0;
+					margin: 1ch 0 1ch 0;		
+				}
+
+				.query-bar form {
+        			display: flex; /* Activate Flexbox */
+        			width: 100%%; /* Ensure the form uses the full 100ch of .query-bar */
+        			align-items: center; /* Vertically center the text and input */
+    			}
+
+				.query-label {
+					font-family: monospace;
+					font-size: 1.5em;
+					font-weight: bold;
+					padding: 0 0 0 0;
+					flex-shrink: 0;
 				}
 
 				input[type="text"] { 
@@ -182,10 +202,11 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 		</head>
 		<body>
 		
-		<div id="address-bar">
-				<form action="/" method="GET">
-				<input type="text" id="uri" name="uri" value="%s" placeholder="gopher://freeshell.org:70/">			
-				</form>
+		<div class="query-bar">
+			<form action="/" method="GET">
+				<span class="query-label">gopher://</span>
+				<input type="text" id="uri" name="uri" value="%s" placeholder="freeshell.org:70/">			
+			</form>
 		</div>
 
 	`,
@@ -260,7 +281,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIcon, link))
 
 		case '2': // PH/CSO directory server entry
-			typeIcon = "[PHc]"
+			typeIcon = "[PhC]"
 
 			// Host/port from the Gopher line
 			phHost := host
@@ -269,8 +290,18 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 				phPort = "105" // PH default
 			}
 
-			// Build base PH URL: /ph:host:port
-			phURL := fmt.Sprintf("/ph:%s:%s", phHost, phPort)
+			// Build base PH URL: /ph:host:port, also create the return link
+			returnTo := fmt.Sprintf("/?host=%s&port=%s&selector=%s",
+				currentHost,
+				currentPort,
+				url.QueryEscape(currentSelector),
+			)
+
+			phURL := fmt.Sprintf("/ph/%s:%s?return=%s",
+				phHost,
+				phPort,
+				url.QueryEscape(returnTo),
+			)
 
 			// Only attach selector parameter if the gopher entry actually had one
 			if selector != "" {
@@ -339,7 +370,14 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 	selector := query.Get("selector")
 
 	if gopherURI != "" {
-		u, err := url.Parse(gopherURI)
+
+		raw := gopherURI
+		if !strings.Contains(raw, "://") {
+			raw = "gopher://" + raw
+		}
+
+		u, err := url.Parse(raw)
+
 		if err == nil && (u.Scheme == "gopher" || u.Scheme == "") {
 			// Overwrite host, port, and selector from the parsed URI
 
@@ -470,6 +508,12 @@ func handleFocus(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Redirecting session to: %s", localURL)
 }
 
+// handlePHEntry catches requests for Type 2 cso-ph directory requests
+func handlePHEntry(w http.ResponseWriter, r *http.Request) {
+	updateActivity()
+	HandlePH(w, r)
+}
+
 // --- Main Function ---
 
 func main() {
@@ -549,6 +593,7 @@ func main() {
 	http.HandleFunc("/", serveGopher)
 	http.HandleFunc(FOCUS_ENDPOINT, handleFocus)   // handler for PID 2 signals
 	http.HandleFunc("/heartbeat", handleHeartbeat) // handler for keep-alive ping
+	http.HandleFunc("/ph/", handlePHEntry)         // handler for ph_client and cso directorys
 
 	// 3. Launch the browser to the initial URL (parsed from CLI or default)
 	launchBrowser(initialGopherURL)
