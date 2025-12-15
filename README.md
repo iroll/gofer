@@ -17,7 +17,7 @@ The basic list of Gopher item types is provided below, as well as their current 
 | **4** | BinHexed Macintosh file | |
 | **5** | DOS binary file archive | |
 | **6** | UNIX uuencoded file | |
-| **7** | Index-Search server | |
+| **7** | Index-Search server |**[check!]** |
 | **8** | Telnet session | |
 | **9** | Binary file (nonspecific) | |
 | **+** | Redundant server | |
