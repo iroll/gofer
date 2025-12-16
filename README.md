@@ -20,9 +20,9 @@ The basic list of Gopher item types is provided below, as well as their current 
 | **1** | Menu or Directory | **[check!]** |
 | **2** | Ph/CSO Server | **[check! connect and search]** |
 | **3** | Error | **[check!]** |
-| **4** | BinHexed Macintosh file | |
-| **5** | DOS binary file archive | |
-| **6** | UNIX uuencoded file | |
+| **4** | BinHexed Macintosh file |**[check!]** |
+| **5** | DOS binary file archive |**[check!]** |
+| **6** | UNIX uuencoded file |**[check!]** |
 | **7** | Index-Search server |**[check!]** |
 | **8** | Telnet session | |
 | **9** | Binary file (nonspecific) |**[check!]** |
