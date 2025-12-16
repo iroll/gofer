@@ -30,3 +30,4 @@ The basic list of Gopher item types is provided below, as well as their current 
 | **T** | TN3270 session | |
 | **g** | A GIF format graphics file |**[check!]** |
 | **I** | Image file (nonspecific) |**[check!]** |
+| **?** | Non-standard Type Codes |**[check! as generic files]** |
