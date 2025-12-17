@@ -1,4 +1,4 @@
-// gofer 0.5
+// gofer 0.9
 // a gopher helper for web browsers
 // hewing as close to RFC 1436 (1993) as practical
 // (C) 2025 Isaac Roll
@@ -84,7 +84,7 @@ func launchBrowser(url string) {
 }
 
 // gopherRequestBytes connects to a remote Gopher server, sends the selector, and returns raw bytes.
-// Use this for binary types: 9, g, I, etc.
+// This is the default case; for menu/text handling use gopherRequest.
 func gopherRequestBytes(host string, port string, selector string) ([]byte, error) {
 	address := net.JoinHostPort(host, port)
 
@@ -384,18 +384,6 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 		}
 	}
 
-	// js heartbeat for the inactivity monitor
-	html.WriteString(fmt.Sprintf(`
-		<script>
-		  setInterval(function() {
-		    fetch('http://localhost:%s/heartbeat')
-		    .catch(error => {
-		      console.log('Error - gofer has closed unexpectedly');
-		    });
-		  }, 55000);
-		</script>
-	`, LOCAL_SERVER_PORT))
-
 	if !embedded {
 		html.WriteString(`</body></html>`)
 	}
@@ -403,13 +391,6 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 }
 
 // --- HTTP Server Handlers ---
-
-// handleHeartbeat updates the activity timer without loading content.
-func handleHeartbeat(w http.ResponseWriter, r *http.Request) {
-	updateActivity()
-	w.WriteHeader(http.StatusOK)
-	// No body needed. A successful status code is enough to reset the timer.
-}
 
 // serveGopher handles the primary Gopher requests (e.g., /?host=... or just /).
 func serveGopher(w http.ResponseWriter, r *http.Request) {
@@ -669,11 +650,13 @@ func main() {
 	http.HandleFunc("/", serveGopher)
 	http.HandleFunc(FOCUS_ENDPOINT, handleFocus)   // handler for PID 2 signals
 	http.HandleFunc("/heartbeat", handleHeartbeat) // handler for keep-alive ping
+	http.HandleFunc("/heartmon", serveHeartMon)    // heartbeat monitor window
 	http.HandleFunc("/ph/", handlePHEntry)         // handler for type 2 ph_client and cso directorys
 	http.HandleFunc("/search", HandleSearch)       // handler for type 7 searches
 
 	// 3. Launch the browser to the initial URL (parsed from CLI or default)
 	launchBrowser(initialGopherURL)
+	launchBrowser(fmt.Sprintf("http://localhost:%s/heartmon", LOCAL_SERVER_PORT))
 
 	// 4. Start the server using the listener we successfully created
 	// This blocks the main goroutine until termination (by the monitor or Ctrl+C)
