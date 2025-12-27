@@ -1,21 +1,28 @@
-# gofer
-Gofer is a helper agent that allows any web browser to access **Gopherspace** without extensions.
+# g<img width="32" height="32" alt="gofer_icon" src="https://github.com/user-attachments/assets/ef3af66b-bb5e-41e8-9801-4028fb396100" />f e r
 
-Mainstream browsers have long since dumped Gopher compatibility, leaving a handful of incompatible browser extensions and specialty clients for Gopher browsing. The goal for Gofer is to provide a basic **1995 - 2000 feature set** as simply as possible, without over-thinking presentation. It is intended to be distributed in a way that restores the gopher:// class to the user's machine.  
+gofer is an internet gopher getter; a helper agent that allows any web browser to access the gopherholes of gopherspace without extensions.
 
-Gofer for Gopher is written in **Go** for obvious reasons; namely, to provide a compiled package for easy distribution and avoidance of dependencies (i.e., Python).
+Mainstream browsers have long since dumped Gopher compatibility, leaving a handful of incompatible browser extensions and specialty clients for Gopher browsing. The goal for gofer is to provide a basic late 90s feature set without over-thinking. It it should restore the gopher:// class to the user's machine at the lowest learning curve.  
 
-## gofer 0.5
-Development of gofer 0.5 focused on the basic gopher client functions, type handling, and UI.
-Usage: a macos executable - gofer - is currently provided; otherwise, gofer will need to be built from the provided source. Gofer 0.5 can be called from the command line, e.g.:
+gofer for gopher is written in go for obvious reasons; namely, to provide to avoid dependancies and virtual machines.
 
-gofer gopher://freeshell.org:70
+## build
+go build gofer
 
-... and a default browser window will open. Currently gofer will close after 60s of inactivity in the main window and will need to be launched from the command line again. 
+## use
+goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70)
 
-## gofer 0.9
-Development on gofer 0.9 is focused on some architectural improvements, namely the persistence of the gofer helper app and building native packages for macOS, debian, and windows that will automatically register gopher:// handling with the OS. UI beautification is the intended scope to reach 1.0.
+### macos
+a prebuilt macos binary and gofer.app are provided. MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the use pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
 
+### windows
+in progress
+
+### linux (debian/gnome)
+The linux prebuild targets gnome on debian.
+
+
+## list of supported item types
 The basic list of Gopher item types is provided below, as well as their current implementation status:
 
 | Type Code | Description | Status |
