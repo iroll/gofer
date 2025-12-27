@@ -7,8 +7,8 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -16,7 +16,6 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -25,55 +24,50 @@ const (
 	LOCAL_SERVER_PORT         = "8000"
 	DEFAULT_GOPHER_HOST       = "freeshell.org"
 	DEFAULT_GOPHER_PORT       = "70"
-	SHUTDOWN_TIMEOUT_SECONDS  = 60
 	TCP_TIMEOUT               = 5 * time.Second
 	GOPHER_REQUEST_TERMINATOR = "\r\n"
 	FOCUS_ENDPOINT            = "/focus"
 )
 
-// --- Inactivity Monitor ---
-// a js heartbeat on 55 second intervals from a formatted HTML page keeps gofer alive
-// otherwise, after 60 seconds of inactivity it terminates
-
-var lastRequestTime = time.Now()
-var shutdownMux sync.Mutex
-
-func updateActivity() { // resets the inactivity timer. Called by all HTTP handlers.
-	shutdownMux.Lock()
-	lastRequestTime = time.Now()
-	shutdownMux.Unlock()
+type menuRenderRule struct {
+	icon  string
+	color string
 }
 
-func monitorInactivity() { // checks the time since the last request and shuts down if timed out.
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
+var menuRules = map[byte]menuRenderRule{
+	'0': {icon: "[TXT]"},
+	'1': {icon: "[ 1 ]"},
+	'2': {icon: "[PhC]"},
+	'3': {icon: "[ERR]", color: "red"},
+	'4': {icon: "[HQX]"},
+	'5': {icon: "[DOS]"},
+	'6': {icon: "[UUE]"},
+	'7': {icon: "[ 7 ]"},
+	'g': {icon: "[GIF]"},
+	'I': {icon: "[IMG]"},
+	'i': {icon: "[ i ]", color: "gray"},
+}
 
-	for range ticker.C {
-		shutdownMux.Lock()
-		idleDuration := time.Since(lastRequestTime)
-		shutdownMux.Unlock()
+// --- launchBrowser ---
+// opens the default web browser to the given URL
 
-		if idleDuration > SHUTDOWN_TIMEOUT_SECONDS*time.Second {
-			fmt.Println("No activity for", SHUTDOWN_TIMEOUT_SECONDS, "seconds. Shutting down...")
-			os.Exit(0)
-		}
+func launchBrowser(targetURL string) {
+	// make sure that gopher:// links are translated into internal html
+	if strings.HasPrefix(targetURL, "gopher://") {
+		targetURL = fmt.Sprintf("http://localhost:%s/?uri=%s",
+			LOCAL_SERVER_PORT, url.QueryEscape(targetURL))
 	}
-}
 
-// --- Utility Functions ---
-
-// launchBrowser opens the default web browser to the given URL.
-func launchBrowser(url string) {
 	var cmd *exec.Cmd
 
 	// Use runtime.GOOS to get the OS the program is running on
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", url)
+		cmd = exec.Command("cmd", "/c", "start", targetURL)
 	case "darwin": // macOS
-		cmd = exec.Command("open", url)
+		cmd = exec.Command("open", targetURL)
 	default: // Linux (and others)
-		cmd = exec.Command("xdg-open", url)
+		cmd = exec.Command("xdg-open", targetURL)
 	}
 
 	// use Start() to avoid blocking the main goroutine
@@ -83,82 +77,61 @@ func launchBrowser(url string) {
 	}
 }
 
-// gopherRequestBytes connects to a remote Gopher server, sends the selector, and returns raw bytes.
-// This is the default case; for menu/text handling use gopherRequest.
-func gopherRequestBytes(host string, port string, selector string) ([]byte, error) {
-	address := net.JoinHostPort(host, port)
+// --- serveLanding ---
+// provides the default home page
 
-	conn, err := net.DialTimeout("tcp", address, TCP_TIMEOUT)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Gopher server %s: %w", address, err)
-	}
-	defer conn.Close()
+//go:embed ui/landingGopher
+var landingGopher []byte
 
-	conn.SetDeadline(time.Now().Add(TCP_TIMEOUT))
-
-	request := selector + GOPHER_REQUEST_TERMINATOR
-
-	if _, err := conn.Write([]byte(request)); err != nil {
-		return nil, fmt.Errorf("failed to write selector to socket: %w", err)
-	}
-
-	// Read everything until EOF / timeout
-	b, err := io.ReadAll(conn)
-	if err != nil {
-		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-			return nil, fmt.Errorf("socket timeout while reading from %s", address)
-		}
-		return nil, fmt.Errorf("error reading from socket: %w", err)
-	}
-
-	return b, nil
+func serveLanding(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	html := formatMenuHTML(
+		string(landingGopher),
+		"local",
+		"",
+		"/",
+		false,
+	)
+	w.Write([]byte(html))
 }
 
-// gopherRequest returns text for menu/text handling.
-// This is NOT safe for binary. Use gopherRequestBytes for that.
-func gopherRequest(host string, port string, selector string) (string, error) {
-	b, err := gopherRequestBytes(host, port, selector)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
-// helper to determine whether a link goes to the text pipeline or the byte pipeline
-func isTransparentType(t byte) bool {
-	switch t {
-	case '0', '1':
-		return true
-	default:
-		return false
-	}
-}
-
-// --- HTML Formatting Component ---
-
+// --- formatMenuHTML ---
 // formatMenuHTML takes raw Gopher data and turns it into minimal HTML.
 // It requires the current host, port, and selector for form pre-filling and links.
+
 func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector string, embedded bool) string {
 
 	// Start with the HTML boilerplate, including the input form at the top
 	var html strings.Builder
 
-	// 1. Helper for writing the common item types
-	writeLink := func(icon string, itemType byte, host, port, selector, display string) {
-		link := fmt.Sprintf(
-			"<a href=\"/?type=%c&host=%s&port=%s&selector=%s\">%s</a>",
-			itemType, host, port, url.QueryEscape(selector), display,
-		)
-		html.WriteString(fmt.Sprintf(
-			"<p class=\"gopher-link\">%s%s</p>\n",
-			icon,
-			link,
-		))
+	// 1a. unified link builder
+	buildInternalLink := func(t byte, host, port, selector, display string) string {
+		u := url.URL{Path: "/"}
+		q := u.Query()
+		q.Set("type", string([]byte{t}))
+		q.Set("host", host)
+		q.Set("port", port)
+		q.Set("selector", selector)
+		u.RawQuery = q.Encode()
+		return fmt.Sprintf("<a href=\"%s\">%s</a>", u.String(), display)
 	}
 
-	// 1. Construct the current Gopher URI for the input field's value
-	currentGopherURI := fmt.Sprintf("%s:%s%s", currentHost, currentPort, currentSelector)
+	// 1b. unified link writer
+	writeLink := func(t byte, icon string, host, port, selector, display string) {
+		link := buildInternalLink(t, host, port, selector, display)
+		html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", icon, link))
+	}
 
+	// 2. Construct the current Gopher URI for the input field's value
+	var currentGopherURI string
+	if currentSelector == "/" {
+		currentGopherURI = fmt.Sprintf("%s:%s/", currentHost, currentPort)
+	} else {
+		// currentSelector already has leading slash from u.Path
+		currentGopherURI = fmt.Sprintf("%s:%s%s", currentHost, currentPort, currentSelector)
+	}
+
+	// 3. The HTML/CSS framework
 	if !embedded {
 		html.WriteString(fmt.Sprintf(`
 		
@@ -194,9 +167,9 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 				}
 
 				.query-bar form {
-        			display: flex; /* Activate Flexbox */
-        			width: 100%%; /* Ensure the form uses the full 100ch of .query-bar */
-        			align-items: center; /* Vertically center the text and input */
+        			display: flex;
+        			width: 100%%;
+        			align-items: center;
     			}
 
 				.query-label {
@@ -234,9 +207,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			currentHost, currentPort, currentSelector, currentGopherURI))
 	}
 
-	// --- End of the argument list ---
-
-	// Process the lines from the Gopher response
+	// 4. Process the lines from the Gopher response
 	lines := strings.Split(rawGopherData, "\n")
 
 	for _, line := range lines {
@@ -256,7 +227,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 		var itemType byte
 		var displayString, selector, host, port string
 
-		// If the line is malformed, assume itemType 3
+		// If a malformed line (less than four fields) is detected, assume itemType 3
 
 		if len(fields) < 4 {
 			itemType = '3'
@@ -271,9 +242,9 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			displayString = fields[0][1:]
 
 			// 2. Extract Selector, Host, and Port
-			selector = fields[1]
-			host = fields[2]
-			port = fields[3]
+			selector = strings.TrimSpace(fields[1])
+			host = strings.TrimSpace(fields[2])
+			port = strings.TrimSpace(fields[3])
 		}
 
 		displayString = strings.TrimRight(displayString, " \t\r")
@@ -282,27 +253,36 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			continue
 		}
 
-		typeIcon := ""
+		// External HTTP(S) link embedded in selector — hand off to browser verbatim
+		lower := strings.ToLower(selector)
 
-		// 3. Determine HTML output based on the MINIMAL set of Item Types
+		idx := strings.Index(lower, "http://")
+		if idx == -1 {
+			idx = strings.Index(lower, "https://")
+		}
+		if idx != -1 {
+			ext := selector[idx:] // slice ORIGINAL string
+
+			html.WriteString(fmt.Sprintf(
+				"<p class=\"gopher-link\"><span style=\"color: red;\">[ ! ]</span><a href=\"%s\">%s</a></p>\n",
+				ext,
+				displayString,
+			))
+			continue
+		}
+
+		// 3. Determine HTML output based on the itemType
 		switch itemType {
 
-		case '0': // Linkable item: Text file (Type 0)
-			typeIcon = "[TXT]"
-			// Build the link back to the gofer html engine
-			link := fmt.Sprintf("<a href=\"/?type=%c&host=%s&port=%s&selector=%s\">%s</a>", itemType, host, port, url.QueryEscape(selector), displayString)
-			// future gopher version link := fmt.Sprintf("<a href=\"gopher://%s:%s/%c%s\">%s</a>", host, port, itemType, selector, displayString)
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIcon, link))
+		case '0': // Linkable item: Text file (text pipeline)
+			rule := menuRules[itemType]
+			writeLink(itemType, rule.icon, host, port, selector, displayString)
 
-		case '1': // Linkable items: Menu (Type 1)
-			typeIcon = "[ 1 ]"
-			// Build the link back to the gofer html engine
-			link := fmt.Sprintf("<a href=\"/?type=%c&host=%s&port=%s&selector=%s\">%s</a>", itemType, host, port, url.QueryEscape(selector), displayString)
-			// future gopher version link := fmt.Sprintf("<a href=\"gopher://%s:%s/%c%s\">%s</a>", host, port, itemType, selector, displayString)
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIcon, link))
+		case '1': // Linkable items: Menu (text pipeline)
+			rule := menuRules[itemType]
+			writeLink(itemType, rule.icon, host, port, selector, displayString)
 
 		case '2': // PH/CSO directory server entry
-			typeIcon = "[PhC]"
 
 			// Host/port from the Gopher line
 			phHost := host
@@ -333,24 +313,26 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			}
 
 			link := fmt.Sprintf("<a href=\"%s\">%s</a>", phURL, displayString)
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\">%s%s</p>\n", typeIcon, link))
+			html.WriteString(fmt.Sprintf(
+				"<p class=\"gopher-link\">[PhC]%s</p>\n",
+				link,
+			))
 			continue
 
-		case '3': // Error (transparent)
-			typeIcon = "[ERR]"
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: red;\">%s</span>%s</p>\n", typeIcon, displayString))
+		case '3': // Error (text pipeline)
+			rule := menuRules[itemType]
+			html.WriteString(fmt.Sprintf(
+				"<p class=\"gopher-link\"><span style=\"color: %s;\">%s</span>%s</p>\n",
+				rule.color,
+				rule.icon,
+				displayString,
+			))
 
-		case '4': // Macintosh BinHex File (opaque)
-			writeLink("[HQX]", itemType, host, port, selector, displayString)
-
-		case '5': // MS DOS Binary File (opaque)
-			writeLink("[DOS]", itemType, host, port, selector, displayString)
-
-		case '6': // Unix UUEncoded File (opaque)
-			writeLink("[UUE]", itemType, host, port, selector, displayString)
+		case '4', '5', '6', 'g', 'I': // BinHex, DosBin, UUE, GIF, Generic Image (byte pipeline)
+			rule := menuRules[itemType]
+			writeLink(itemType, rule.icon, host, port, selector, displayString)
 
 		case '7': // Searchable Index (Type 7)
-			typeIcon = "[ 7 ]"
 
 			// Route to search handler (to be implemented)
 			link := fmt.Sprintf(
@@ -362,25 +344,27 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 			)
 
 			html.WriteString(fmt.Sprintf(
-				"<p class=\"gopher-link\">%s%s</p>\n",
-				typeIcon,
+				"<p class=\"gopher-link\">[ 7 ]%s</p>\n",
 				link,
 			))
 
-		case 'g': // GIF image (opaque)
-			writeLink("[GIF]", itemType, host, port, selector, displayString)
+		case 'i': // Informational text (text pipeline)
+			rule := menuRules[itemType]
+			html.WriteString(fmt.Sprintf(
+				"<p class=\"gopher-link\"><span style=\"color: %s;\">%s</span>%s</p>\n",
+				rule.color,
+				rule.icon,
+				displayString,
+			))
 
-		case 'I': // Generic image (opaque)
-			writeLink("[IMG]", itemType, host, port, selector, displayString)
+		default: // Unknown type: treated as byte pipeline.
+			link := buildInternalLink(itemType, host, port, selector, displayString)
+			html.WriteString(fmt.Sprintf(
+				"<p class=\"gopher-link\"><span style=\"color: red;\">[!%c!]</span>%s</p>\n",
+				itemType,
+				link,
+			))
 
-		case 'i': // Informational text (transparent)
-			typeIcon = "[ i ]"
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: gray;\">%s</span>%s</p>\n", typeIcon, displayString))
-
-		default: // Unknown type: treated as opaque.
-			typeIcon = fmt.Sprintf("[!%c!]", itemType)
-			link := fmt.Sprintf("<a href=\"/?type=%c&host=%s&port=%s&selector=%s\">%s</a>", itemType, host, port, url.QueryEscape(selector), displayString)
-			html.WriteString(fmt.Sprintf("<p class=\"gopher-link\"><span style=\"color: red;\">%s</span>%s</p>\n", typeIcon, link))
 		}
 	}
 
@@ -390,53 +374,47 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 	return html.String()
 }
 
-// --- HTTP Server Handlers ---
-
+// --- serveGopher: the HTTP Server Handlers ---
 // serveGopher handles the primary Gopher requests (e.g., /?host=... or just /).
+// NOTE: itemType is authoritative. Do not infer from selector or content.
 func serveGopher(w http.ResponseWriter, r *http.Request) {
-	updateActivity() // Reset the inactivity timer
 
 	var (
-		err         error
-		u           *url.URL
-		rawResponse string
-		rawBytes    []byte
+		err        error
+		engineResp GopherResponse
 	)
 
 	query := r.URL.Query()
 
-	// 1. Check for submission from the new single-field URI bar
+	// 1. Check for normalized gopher input
 	gopherURI := query.Get("uri")
 
-	// 2. Initialize variables (or use values from old menu link clicks)
-	gopherTypeQuery := query.Get("type")
-	host := query.Get("host")
-	port := query.Get("port")
-	selector := query.Get("selector")
+	var (
+		host     string
+		port     string
+		selector string
+		gType    byte
+	)
 
+	// URI path takes precedence
 	if gopherURI != "" {
-
-		raw := gopherURI
-		if !strings.Contains(raw, "://") {
-			raw = "gopher://" + raw
+		target, err := normalizeGopherInput(gopherURI)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 
-		u, err = url.Parse(raw)
+		host = target.Host
+		port = target.Port
+		selector = target.Selector
+		gType = target.Type
 
-		if err == nil && (u.Scheme == "gopher" || u.Scheme == "") {
-			// Overwrite host, port, and selector from the parsed URI
-
-			host = u.Hostname()
-
-			port = u.Port()
-			if port == "" {
-				port = DEFAULT_GOPHER_PORT
-			}
-
-			selector = strings.TrimPrefix(u.Path, "/")
-		}
 	} else {
-		// Only apply defaults if navigating via an old-style link or direct "/" load
+		// Legacy navigation via internal links
+		host = query.Get("host")
+		port = query.Get("port")
+		selector = query.Get("selector")
+
 		if host == "" {
 			host = DEFAULT_GOPHER_HOST
 		}
@@ -446,42 +424,36 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 		if selector == "" {
 			selector = "/"
 		}
+
+		// Fallback
+		typeParam := query.Get("type")
+		if typeParam != "" {
+			gType = typeParam[0]
+		} else if selector == "/" {
+			// root menu has no originating item type
+			gType = '1'
+		} else {
+			http.Error(w, "missing gopher item type", http.StatusBadRequest)
+			return
+		}
+
 	}
-
-	rawResponse, err = gopherRequest(host, port, selector)
-
-	if err != nil {
-		// Connection Error - a synthetic type-3 line for the formatter
-		synthetic := fmt.Sprintf("3Connection failed: %s\t/\t%s\t%s\n.\n",
-			err.Error(), host, port)
-
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		htmlContent := formatMenuHTML(synthetic, host, port, selector, false)
-		w.Write([]byte(htmlContent))
-		return
-	}
-
-	// Determine the Gopher type requested.
-	var gopherType byte
-	if len(gopherTypeQuery) > 0 {
-		gopherType = gopherTypeQuery[0]
-	} else {
-		// Fallback for direct browser entry or older links (assume menu)
-		gopherType = '1'
-	}
-
-	isTransparent := isTransparentType(gopherType)
 
 	// Fetch content based on pipeline
-	if isTransparent {
-		rawResponse, err = gopherRequest(host, port, selector)
-	} else {
-		rawBytes, err = gopherRequestBytes(host, port, selector)
-	}
+	engineResp, err = Fetch(GopherTarget{
+		Host:     host,
+		Port:     port,
+		Selector: selector,
+		Type:     gType,
+	})
 
 	if err != nil {
-		synthetic := fmt.Sprintf("3Connection failed: %s\t/\t%s\t%s\n.\n",
-			err.Error(), host, port)
+		synthetic := fmt.Sprintf(
+			"3Connection failed: %s\t/\t%s\t%s\n.\n",
+			err.Error(),
+			host,
+			port,
+		)
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		htmlContent := formatMenuHTML(synthetic, host, port, selector, false)
@@ -489,32 +461,36 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handle content based on Gopher Type
-	switch gopherType {
+	// Render based on engine response
 
-	case '0', 'i': // Text File (Type 0) or Informational Text (Type i)
-		// Type 0 is sent to the browser as raw text with the correct HTTP header.
-		// Type 'i' is only used in a menu and should not be requested directly, but treat it as text/plain if it is.
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Write([]byte(rawResponse))
-
-	case '1': // Menu (Type 1)
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		htmlContent := formatMenuHTML(rawResponse, host, port, selector, false)
-		w.Write([]byte(htmlContent))
-
-	default:
-		// Unknown types are treated as opaque bytes.
-		// We provide no strong opinion; the browser decides.
-		w.Header().Set("Content-Type", http.DetectContentType(rawBytes))
-		w.Write(rawBytes)
+	// opaque pipeline if bytes are present
+	if len(engineResp.RawBytes) > 0 {
+		w.Header().Set("Content-Type", http.DetectContentType(engineResp.RawBytes))
+		w.Write(engineResp.RawBytes)
+		return
 	}
+
+	// text pipeline content
+	// menu vs text is determined by type
+	if gType == '1' {
+		// menu
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		htmlContent := formatMenuHTML(engineResp.RawText, host, port, selector, false)
+		w.Write([]byte(htmlContent))
+		return
+	}
+
+	// text file
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte(engineResp.RawText))
+
 }
 
-// handleFocus is called by a newly launched 'gofer' process (PID 2) to signal
+// --- handleFocus ---
+// called by a newly launched 'gofer' process (PID 2) to signal
 // the running process (PID 1) to load a new gopher URI and refresh the browser.
+
 func handleFocus(w http.ResponseWriter, r *http.Request) {
-	updateActivity() // Reset the inactivity timer
 
 	// 1. Get the gopher URI passed from the second instance
 	gopherURI := r.URL.Query().Get("uri")
@@ -525,36 +501,19 @@ func handleFocus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. Convert the gopher URI into the local HTTP link
-	u, err := url.Parse(gopherURI)
-	if err != nil || u.Scheme != "gopher" {
-		http.Error(w, "Invalid gopher URI.", http.StatusBadRequest)
+	target, err := normalizeGopherInput(gopherURI)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Reconstruct the URL for our local server
-	// Example: gopher://freeshell.org:70/1/users becomes /?host=freeshell.org&port=70&selector=1/users
-
-	// u.Path contains the item type and selector (e.g., /1/users)
-	// u.Host contains host:port (e.g., freeshell.org:70)
-
-	// We need to pass the raw path, without the leading slash for the selector
-	// But since our serveGopher handler handles the parsing of the selector from the path correctly,
-	// we just need to reconstruct the full local URL.
-
-	// Use our existing serveGopher logic (which uses the query params)
-	// We must separate host and port from u.Host
-
-	host := u.Hostname()
-	port := u.Port()
-	if port == "" {
-		port = DEFAULT_GOPHER_PORT
-	}
-
-	// The selector is the path without the leading slash
-	selector := strings.TrimPrefix(u.Path, "/")
-
-	// Construct the local URL to load
-	localURL := fmt.Sprintf("http://localhost:%s/?host=%s&port=%s&selector=%s", LOCAL_SERVER_PORT, host, port, selector)
+	localURL := fmt.Sprintf(
+		"http://localhost:%s/?host=%s&port=%s&selector=%s",
+		LOCAL_SERVER_PORT,
+		target.Host,
+		target.Port,
+		url.QueryEscape(target.Selector),
+	)
 
 	// 3. Launch the browser to the new URL
 	// The browser will typically focus on the existing tab or open a new one.
@@ -567,7 +526,6 @@ func handleFocus(w http.ResponseWriter, r *http.Request) {
 
 // handlePHEntry catches requests for Type 2 cso-ph directory requests
 func handlePHEntry(w http.ResponseWriter, r *http.Request) {
-	updateActivity()
 	HandlePH(w, r)
 }
 
@@ -577,27 +535,31 @@ func main() {
 
 	// --- STEP 1: Parse Command-Line Arguments (Gopher URI) ---
 
-	// Determine the initial Gopher URL to load.
-	// This will be used in the first instance (PID 1) to open the browser.
-	initialGopherURL := fmt.Sprintf("http://localhost:%s/?host=%s&port=%s&selector=/", LOCAL_SERVER_PORT, DEFAULT_GOPHER_HOST, DEFAULT_GOPHER_PORT)
+	// Default initial URL (used ONLY by the primary instance)
+	initialGopherURL := fmt.Sprintf(
+		"http://localhost:%s/landing",
+		LOCAL_SERVER_PORT,
+	)
 
-	// If a command-line argument is passed (likely a gopher:// URI from the OS handler)
-	if len(os.Args) > 1 {
-		// The argument is the gopher URI
-		gopherURI := os.Args[1]
-		// Convert it to our local HTTP URL for the browser
-		// We use the Focus endpoint logic to convert the gopher URI to local URL
-		u, err := url.Parse(gopherURI)
-		if err == nil && u.Scheme == "gopher" {
-			host := u.Hostname()
-			port := u.Port()
-			if port == "" {
-				port = DEFAULT_GOPHER_PORT
-			}
-			selector := strings.TrimPrefix(u.Path, "/")
-			initialGopherURL = fmt.Sprintf("http://localhost:%s/?host=%s&port=%s&selector=%s", LOCAL_SERVER_PORT, host, port, selector)
-		} else {
-			fmt.Printf("Warning: Invalid URI received: %s. Loading default page.\n", gopherURI)
+	// Scan args for a gopher-ish argument (Safari may insert junk args)
+	var rawInput string
+	for _, arg := range os.Args[1:] {
+		if strings.Contains(arg, "gopher://") || !strings.Contains(arg, "://") {
+			rawInput = arg
+			break
+		}
+	}
+
+	if rawInput != "" {
+		target, err := normalizeGopherInput(rawInput)
+		if err == nil {
+			initialGopherURL = fmt.Sprintf(
+				"http://localhost:%s/?host=%s&port=%s&selector=%s",
+				LOCAL_SERVER_PORT,
+				target.Host,
+				target.Port,
+				url.QueryEscape(target.Selector),
+			)
 		}
 	}
 
@@ -605,38 +567,26 @@ func main() {
 
 	listener, err := net.Listen("tcp", ":"+LOCAL_SERVER_PORT)
 	if err != nil {
-		// Port is already in use (PID 1 is running) -> This is PID 2
-		fmt.Printf("gofer (PID %d) is already running on port %s. Sending Re-Focus signal.\n", os.Getpid(), LOCAL_SERVER_PORT)
+		// --- PID 2 (secondary instance) ---
 
-		// Send a request to PID 1 to handle the new Gopher URI
-		// If we were launched with a Gopher URL, forward it. Otherwise request a generic focus.
-		var targetURL string
-		if len(os.Args) > 1 {
-			targetURL = fmt.Sprintf(
-				"http://localhost:%s%s?uri=%s",
-				LOCAL_SERVER_PORT,
-				FOCUS_ENDPOINT,
-				url.QueryEscape(os.Args[1]),
-			)
-		} else {
-			// No arg provided; request focus without a URI.
-			targetURL = fmt.Sprintf(
-				"http://localhost:%s%s",
-				LOCAL_SERVER_PORT,
-				FOCUS_ENDPOINT,
-			)
+		// If browser launched us WITHOUT a gopher URI, do nothing.
+		// This prevents clobbering the running session.
+		if rawInput == "" {
+			os.Exit(0)
 		}
 
-		resp, err := http.Get(targetURL)
-		if err != nil {
-			fmt.Printf("Error sending re-focus signal: %v\n", err)
-			os.Exit(1)
-		}
-		defer resp.Body.Close()
+		// Forward the URI to the primary instance
+		targetURL := fmt.Sprintf(
+			"http://localhost:%s%s?uri=%s",
+			LOCAL_SERVER_PORT,
+			FOCUS_ENDPOINT,
+			url.QueryEscape(rawInput),
+		)
 
-		// PID 2 exits gracefully after sending the signal.
+		_, _ = http.Get(targetURL)
 		os.Exit(0)
 	}
+
 	defer listener.Close()
 
 	// --- STEP 3: Primary Instance (PID 1) Initialization ---
@@ -644,19 +594,27 @@ func main() {
 	fmt.Printf("gofer (PID %d) starting server on port %s...\n", os.Getpid(), LOCAL_SERVER_PORT)
 
 	// 1. Start the inactivity monitor in a separate goroutine
-	go monitorInactivity()
+	// DEPRECATED
 
 	// 2. Set up the HTTP handlers
 	http.HandleFunc("/", serveGopher)
-	http.HandleFunc(FOCUS_ENDPOINT, handleFocus)   // handler for PID 2 signals
-	http.HandleFunc("/heartbeat", handleHeartbeat) // handler for keep-alive ping
-	http.HandleFunc("/heartmon", serveHeartMon)    // heartbeat monitor window
-	http.HandleFunc("/ph/", handlePHEntry)         // handler for type 2 ph_client and cso directorys
-	http.HandleFunc("/search", HandleSearch)       // handler for type 7 searches
+	http.HandleFunc(FOCUS_ENDPOINT, handleFocus) // handler for PID 2 signals
+	http.HandleFunc("/ph/", handlePHEntry)       // handler for type 2 ph_client and cso directorys
+	http.HandleFunc("/search", HandleSearch)     // handler for type 7 searches
+	http.HandleFunc("/landing", serveLanding)    // default internal home page
 
 	// 3. Launch the browser to the initial URL (parsed from CLI or default)
-	launchBrowser(initialGopherURL)
-	launchBrowser(fmt.Sprintf("http://localhost:%s/heartmon", LOCAL_SERVER_PORT))
+	browserURL := initialGopherURL
+
+	// CRITICAL: If the input is a gopher protocol, we must translate it
+	// to our local HTTP proxy link so the OS doesn't call gofer again.
+	if strings.HasPrefix(initialGopherURL, "gopher://") {
+		browserURL = fmt.Sprintf("http://localhost:%s/?uri=%s",
+			LOCAL_SERVER_PORT, url.QueryEscape(initialGopherURL))
+	}
+
+	// 4. Launch the browser to our PROXY link, not the raw gopher link
+	launchBrowser(browserURL)
 
 	// 4. Start the server using the listener we successfully created
 	// This blocks the main goroutine until termination (by the monitor or Ctrl+C)

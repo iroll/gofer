@@ -1,4 +1,4 @@
-// search module for gofer 0.5
+// search module for gofer 0.5 - 0.9
 // provides access to, e.g., veronica servers
 // (C) 2025 Isaac Roll
 // See github.com/iroll/gofer for license
