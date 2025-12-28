@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --buildsystem=meson --without=dwz
+
+override_dh_auto_build:
+	cd .. && GOTOOLCHAIN=local go build -o linux/gofer
+	dh_auto_build --sourcedirectory=GoferGTKWrapper
+
+override_dh_auto_install:
+	install -D -m 0755 gofer \
+		$(CURDIR)/debian/gofer/usr/bin/gofer
+	dh_auto_install --sourcedirectory=GoferGTKWrapper
+
+override_dh_auto_configure:
+	dh_auto_configure --sourcedirectory=GoferGTKWrapper
+
+override_dh_dwz:
+	:
