@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+    update-desktop-database /usr/share/applications || true
+    xdg-mime default gofer.desktop x-scheme-handler/gopher || true
+fi
+
+#DEBHELPER#
+
+exit 0
