@@ -15,7 +15,7 @@ goper can be invoked from the command line or used with an OS-wrapper (preferred
 ### macos
 [macOS .app [arm64]](https://github.com/user-attachments/files/24388950/gofer.zip)
 
-a prebuilt macos binary and gofer.app are provided - copying the app to your Applications folder will ensure that gopher:// is registered. 
+Copy the app to your Applications folder will ensure that gopher:// is registered. 
 
 MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the use pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
 
