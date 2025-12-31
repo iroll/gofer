@@ -13,8 +13,8 @@ go build gofer
 goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70)
 
 ### macos
+[macOS .app [arm64]](https://github.com/user-attachments/files/24388950/gofer.zip)
 
-[Uploading gofer.zip…](macOS [arm64])
 
 a prebuilt macos binary and gofer.app are provided. MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the use pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
 
