@@ -13,8 +13,8 @@ go build gofer
 goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70)
 
 ### macos
+[macOS .app [arm64]](https://github.com/user-attachments/files/24388950/gofer.zip)
 
-<a href="https://github.com/iroll/gofer/blob/master/gofer_0.9-1%20macOS/gofer-macos.dmg">macOS DMG (arm64)</a>
 
 a prebuilt macos binary and gofer.app are provided. MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the use pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
 
@@ -23,7 +23,7 @@ in progress
 
 ### linux (debian/gnome)
 
-<a href="https://github.com/iroll/gofer/blob/master/gofer_0.9-1%20debian/gofer_0.9-1_arm64.deb">Debian .deb (arm64)</a>
+<a href="https://github.com/iroll/gofer/blob/master/gofer_0.9-1%20debian/gofer_0.9-1_arm64.deb">Debian .deb [arm64]</a>
 
 The linux prebuild targets gnome on debian.
 
