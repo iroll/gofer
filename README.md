@@ -2,9 +2,9 @@
 
 gofer is an internet gopher getter; a helper agent that allows any web browser to access the gopherholes of gopherspace without extensions.
 
-Mainstream browsers have long since dumped Gopher compatibility, leaving a handful of incompatible browser extensions and specialty clients for Gopher browsing. The goal for gofer is to provide a basic late 90s feature set without over-thinking. It it should restore the gopher:// class to the user's machine at the lowest learning curve.  
+Mainstream browsers have long since dumped Gopher compatibility, leaving a handful of incompatible browser extensions and specialty clients for Gopher browsing. The goal for gofer is to provide a basic late 90s feature set without over-thinking. It should restore the gopher:// class to the user's machine at the lowest learning curve.  
 
-gofer for gopher is written in go for obvious reasons; namely, to provide to avoid dependancies and virtual machines.
+gofer for gopher is written in go for obvious reasons; namely, to avoid dependancies and virtual machines.
 
 ## build
 go build gofer
