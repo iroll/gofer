@@ -10,13 +10,14 @@ gofer for gopher is written in go for obvious reasons; namely, to avoid dependan
 go build gofer
 
 ## use
-goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70)
+goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70). Using gopher from the CL *will not* register gopher:// with the OS!
 
 ### macos
 [macOS .app [arm64]](https://github.com/user-attachments/files/24388950/gofer.zip)
 
+Copy the app to your Applications folder will ensure that gopher:// is registered. 
 
-a prebuilt macos binary and gofer.app are provided. MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the use pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
+MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the use pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
 
 ### windows
 in progress
