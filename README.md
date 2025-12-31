@@ -2,9 +2,9 @@
 
 gofer is an internet gopher getter; a helper agent that allows any web browser to access the gopherholes of gopherspace without extensions.
 
-Mainstream browsers have long since dumped Gopher compatibility, leaving a handful of incompatible browser extensions and specialty clients for Gopher browsing. The goal for gofer is to provide a basic late 90s feature set without over-thinking. It it should restore the gopher:// class to the user's machine at the lowest learning curve.  
+Mainstream browsers have long since dumped Gopher compatibility, leaving a handful of incompatible browser extensions and specialty clients for Gopher browsing. The goal for gofer is to provide a basic late 90s feature set without over-thinking. It should restore the gopher:// class to the user's machine at the lowest learning curve.  
 
-gofer for gopher is written in go for obvious reasons; namely, to provide to avoid dependancies and virtual machines.
+gofer for gopher is written in go for obvious reasons; namely, to avoid dependancies and virtual machines.
 
 ## build
 go build gofer
@@ -13,12 +13,18 @@ go build gofer
 goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70)
 
 ### macos
+
+<a href="https://github.com/iroll/gofer/blob/master/gofer_0.9-1%20macOS/gofer-macos.dmg">macOS DMG (arm64)</a>
+
 a prebuilt macos binary and gofer.app are provided. MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the use pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
 
 ### windows
 in progress
 
 ### linux (debian/gnome)
+
+<a href="https://github.com/iroll/gofer/blob/master/gofer_0.9-1%20debian/gofer_0.9-1_arm64.deb">Debian .deb (arm64)</a>
+
 The linux prebuild targets gnome on debian.
 
 
