@@ -243,6 +243,11 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 
 			// 2. Extract Selector, Host, and Port
 			selector = strings.TrimSpace(fields[1])
+
+			// Normalize browser-mangled selectors:
+			// Gopher selectors must not start with '/'
+			selector = strings.TrimPrefix(selector, "/")
+
 			host = strings.TrimSpace(fields[2])
 			port = strings.TrimSpace(fields[3])
 		}
