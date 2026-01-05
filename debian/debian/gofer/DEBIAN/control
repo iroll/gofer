@@ -1,8 +1,8 @@
 Package: gofer
 Version: 0.9.2-1
-Architecture: arm64
+Architecture: amd64
 Maintainer: Isaac Roll <iroll@sdf.org>
-Installed-Size: 5906
+Installed-Size: 6214
 Depends: libadwaita-1-0 (>= 1.5~beta), libc6 (>= 2.34), libglib2.0-0t64 (>= 2.40.0), libgtk-4-1 (>= 4.0.0)
 Section: net
 Priority: optional
