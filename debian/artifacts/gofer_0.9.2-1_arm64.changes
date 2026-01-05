@@ -1,0 +1,36 @@
+Format: 1.8
+Date: Sun, 04 Jan 2026 22:14:54 -0700
+Source: gofer
+Binary: gofer gofer-dbgsym
+Architecture: arm64
+Version: 0.9.2-1
+Distribution: UNRELEASED
+Urgency: medium
+Maintainer: Isaac Roll <iroll@sdf.org>
+Changed-By: Isaac Roll <iroll@sdf.org>
+Description:
+ gofer      - Gopher protocol browser
+Changes:
+ gofer (0.9.2-1) UNRELEASED; urgency=medium
+ .
+   [ uranium ]
+   * Fix application ID consistency (com.iroll.gofer)
+   * Correct icon installation
+   * Debian packaging cleanup
+   * Correct version number in changelog
+ .
+   [ Isaac Roll ]
+   *
+   *
+Checksums-Sha1:
+ c8bc0c3c1f609aa7a0cb242fcca0730b1cbe45de 2421068 gofer-dbgsym_0.9.2-1_arm64.deb
+ 3db7f0e4acf33ef18eb2c6928fb0e11c6866fc64 14444 gofer_0.9.2-1_arm64.buildinfo
+ 958d4c0c49c88ba6c01274a0639164bb4a984542 1855232 gofer_0.9.2-1_arm64.deb
+Checksums-Sha256:
+ e2717aa12e0e4a99adf0f1ebbfc156664c283bce96533273769b6c0358f51a1b 2421068 gofer-dbgsym_0.9.2-1_arm64.deb
+ 285b40b311f88e13aae4703a4dc876f49fc79cafdbd4ebcc38c8100d7d7a2530 14444 gofer_0.9.2-1_arm64.buildinfo
+ 0b46ed9882d24f24f168623224bdc102d30947e645d93bb3db899bf9cd05a7dd 1855232 gofer_0.9.2-1_arm64.deb
+Files:
+ 98aaacce352d88314e860c4a8c02954f 2421068 debug optional gofer-dbgsym_0.9.2-1_arm64.deb
+ 6b8275a26237f6c2863cab60321d9e3e 14444 net optional gofer_0.9.2-1_arm64.buildinfo
+ 3858666e97b6c0e34fb0d9dcaf251e27 1855232 net optional gofer_0.9.2-1_arm64.deb

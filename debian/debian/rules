@@ -1,0 +1,37 @@
+#!/usr/bin/make -f
+
+# Use debhelper with meson for the GTK wrapper
+%:
+	dh $@ --buildsystem=meson --without=dwz
+
+# Treat the project root (one level up) as the Go source root
+SRCROOT := $(CURDIR)/..
+
+override_dh_auto_configure:
+# Configure the GTK wrapper located in the debian subdir
+	dh_auto_configure --sourcedirectory=debian/GoferGTKWrapper
+
+override_dh_auto_build:
+# Only build the GTK wrapper here
+	dh_auto_build --sourcedirectory=debian/GoferGTKWrapper
+	
+override_dh_auto_install:
+# 1. Let Meson install its files
+	dh_auto_install --sourcedirectory=debian/GoferGTKWrapper
+
+# 2. Then install the Go binary into the staging tree
+	mkdir -p $(CURDIR)/debian/gofer/usr/bin
+	GOTOOLCHAIN=local \
+		go build -C $(CURDIR)/.. \
+		-o $(CURDIR)/debian/gofer/usr/bin/gofer
+
+override_dh_clean:
+# Standard clean-up
+	dh_clean
+
+# Extra insurance: remove any stray binaries if they somehow appear
+	rm -f $(SRCROOT)/gofer
+	
+override_dh_dwz:
+# Disable dwz (it often struggles with Go's DWARF format)
+	:

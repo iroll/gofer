@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=gofer
+Comment=Gopher protocol browser
+Exec=/usr/bin/gofer-wrapper %u
+Type=Application
+MimeType=x-scheme-handler/gopher;
+Icon=com.iroll.gofer
+Categories=Network;GTK;
+Terminal=false
+StartupNotify=true
+StartupWMClass=com.iroll.gofer

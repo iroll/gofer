@@ -1,0 +1,18 @@
+Source: gofer
+Section: net
+Priority: optional
+Maintainer: Isaac Roll <iroll@sdf.org>
+Build-Depends: debhelper-compat (= 13),
+               meson,
+               valac,
+               libgtk-4-dev,
+               libadwaita-1-dev,
+               golang-go
+Standards-Version: 4.6.0
+
+Package: gofer
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Gopher protocol browser
+ A gopher protocol browser helper with GTK4/libadwaita interface.
+ Handles gopher:// URLs and provides a clean browsing experience.

@@ -69,15 +69,20 @@ func normalizeGopherInput(raw string) (GopherTarget, error) {
 		port = DEFAULT_GOPHER_PORT
 	}
 
-	// 4. Selector normalization
-	selector := u.Path
-	if selector == "" {
-		selector = "/"
+	// 4. Selector normalization (Go-version stable)
+	rawPath := u.EscapedPath()
+
+	selector := ""
+	switch rawPath {
+	case "", "/":
+		selector = ""
+	default:
+		selector = strings.TrimPrefix(rawPath, "/")
 	}
 
 	// 5. Type inference
 	var t byte = '1'
-	if selector != "/" && selector[0] >= '0' && selector[0] <= '9' {
+	if selector != "" && selector[0] >= '0' && selector[0] <= '9' {
 		t = selector[0]
 	}
 

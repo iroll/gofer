@@ -1,0 +1,13 @@
+gofer (0.9.2-1) UNRELEASED; urgency=medium
+
+  [ uranium ]
+  * Fix application ID consistency (com.iroll.gofer)
+  * Correct icon installation
+  * Debian packaging cleanup
+  * Correct version number in changelog
+
+  [ Isaac Roll ]
+  * 
+  * 
+
+ -- Isaac Roll <iroll@sdf.org>  Sun, 04 Jan 2026 22:14:54 -0700

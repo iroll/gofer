@@ -124,11 +124,10 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 
 	// 2. Construct the current Gopher URI for the input field's value
 	var currentGopherURI string
-	if currentSelector == "/" {
+	if currentSelector == "" {
 		currentGopherURI = fmt.Sprintf("%s:%s/", currentHost, currentPort)
 	} else {
-		// currentSelector already has leading slash from u.Path
-		currentGopherURI = fmt.Sprintf("%s:%s%s", currentHost, currentPort, currentSelector)
+		currentGopherURI = fmt.Sprintf("%s:%s/%s", currentHost, currentPort, currentSelector)
 	}
 
 	// 3. The HTML/CSS framework
@@ -232,7 +231,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 		if len(fields) < 4 {
 			itemType = '3'
 			displayString = "Malformed Line (Type 3 Error): " + strings.TrimSpace(line)
-			selector = "/"
+			selector = ""
 			host = currentHost
 			port = currentPort
 		} else {
@@ -243,10 +242,6 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 
 			// 2. Extract Selector, Host, and Port
 			selector = strings.TrimSpace(fields[1])
-
-			// Normalize browser-mangled selectors:
-			// Gopher selectors must not start with '/'
-			selector = strings.TrimPrefix(selector, "/")
 
 			host = strings.TrimSpace(fields[2])
 			port = strings.TrimSpace(fields[3])
@@ -415,10 +410,12 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 		gType = target.Type
 
 	} else {
-		// Legacy navigation via internal links
+		// Navigation via internal links
 		host = query.Get("host")
 		port = query.Get("port")
 		selector = query.Get("selector")
+
+		selector = strings.TrimPrefix(selector, "/")
 
 		if host == "" {
 			host = DEFAULT_GOPHER_HOST
@@ -426,15 +423,12 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 		if port == "" {
 			port = DEFAULT_GOPHER_PORT
 		}
-		if selector == "" {
-			selector = "/"
-		}
 
 		// Fallback
 		typeParam := query.Get("type")
 		if typeParam != "" {
 			gType = typeParam[0]
-		} else if selector == "/" {
+		} else if selector == "" {
 			// root menu has no originating item type
 			gType = '1'
 		} else {
@@ -454,7 +448,7 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		synthetic := fmt.Sprintf(
-			"3Connection failed: %s\t/\t%s\t%s\n.\n",
+			"3Connection failed: %s\t\t%s\t%s\n.\n",
 			err.Error(),
 			host,
 			port,
