@@ -1,0 +1,5 @@
+C:\Users\uranium\gofer-app\windows\gofer-wrapper\bin\Release\net8.0-windows\win-arm64\publish\gofer-wrapper.exe
+C:\Users\uranium\gofer-app\windows\gofer-wrapper\bin\Release\net8.0-windows\win-arm64\publish\gofer-wrapper.dll
+C:\Users\uranium\gofer-app\windows\gofer-wrapper\bin\Release\net8.0-windows\win-arm64\publish\gofer-wrapper.deps.json
+C:\Users\uranium\gofer-app\windows\gofer-wrapper\bin\Release\net8.0-windows\win-arm64\publish\gofer-wrapper.runtimeconfig.json
+C:\Users\uranium\gofer-app\windows\gofer-wrapper\bin\Release\net8.0-windows\win-arm64\publish\gofer-wrapper.pdb
