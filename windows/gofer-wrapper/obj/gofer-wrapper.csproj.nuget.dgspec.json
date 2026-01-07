@@ -63,11 +63,6 @@
           },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.416/PortableRuntimeIdentifierGraph.json"
         }
-      },
-      "runtimes": {
-        "win-arm64": {
-          "#import": []
-        }
       }
     }
   }

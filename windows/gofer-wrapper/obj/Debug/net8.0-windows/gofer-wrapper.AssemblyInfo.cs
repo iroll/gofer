@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("gofer-wrapper")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+26d85dc04cc3a06f6b688ede2f2d50a32a5ccea5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4865660a2a7193df4a056c8baf889725f65624ce")]
 [assembly: System.Reflection.AssemblyProductAttribute("gofer-wrapper")]
 [assembly: System.Reflection.AssemblyTitleAttribute("gofer-wrapper")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
