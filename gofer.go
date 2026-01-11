@@ -22,7 +22,6 @@ import (
 // --- Configuration Constants ---
 const (
 	LOCAL_SERVER_PORT         = "8000"
-	DEFAULT_GOPHER_HOST       = "freeshell.org"
 	DEFAULT_GOPHER_PORT       = "70"
 	TCP_TIMEOUT               = 5 * time.Second
 	GOPHER_REQUEST_TERMINATOR = "\r\n"
@@ -47,6 +46,15 @@ var menuRules = map[byte]menuRenderRule{
 	'I': {icon: "[IMG]"},
 	'i': {icon: "[ i ]", color: "gray"},
 }
+
+// Type 3 Error Messages for display strings
+var (
+	errMissingHost      = "Error: Missing host name or address"
+	errMissingItemType  = "Error: Missing gopher item type"
+	errMissingURI       = "Error: Missing URI"
+	errConnectionFailed = "Error: Connection failed: %s"
+	errMalformedLine    = "Error: Malformed Line (tab miscount)"
+)
 
 // --- launchBrowser ---
 // opens the default web browser to the given URL
@@ -80,7 +88,7 @@ func launchBrowser(targetURL string) {
 // --- serveLanding ---
 // provides the default home page
 
-//go:embed ui/landingGopher
+//go:embed landingGopher
 var landingGopher []byte
 
 func serveLanding(w http.ResponseWriter, r *http.Request) {
@@ -230,8 +238,8 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 
 		if len(fields) < 4 {
 			itemType = '3'
-			displayString = "Malformed Line (Type 3 Error): " + strings.TrimSpace(line)
-			selector = ""
+			displayString = errMalformedLine
+			selector = "unused"
 			host = currentHost
 			port = currentPort
 		} else {
@@ -263,8 +271,17 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 		if idx != -1 {
 			ext := selector[idx:] // slice ORIGINAL string
 
+			// Show the item type in the icon for unregistered types
+			var icon string
+			if rule, ok := menuRules[itemType]; ok {
+				icon = rule.icon
+			} else {
+				icon = fmt.Sprintf("[!%c!]", itemType)
+			}
+
 			html.WriteString(fmt.Sprintf(
-				"<p class=\"gopher-link\"><span style=\"color: red;\">[ ! ]</span><a href=\"%s\">%s</a></p>\n",
+				"<p class=\"gopher-link\"><span style=\"color: red;\">%s</span><a href=\"%s\">%s</a></p>\n",
+				icon,
 				ext,
 				displayString,
 			))
@@ -418,7 +435,11 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 		selector = strings.TrimPrefix(selector, "/")
 
 		if host == "" {
-			host = DEFAULT_GOPHER_HOST
+			synthetic := "3" + errMissingHost + "\t\tnull.host\t1\n.\n"
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			htmlContent := formatMenuHTML(synthetic, "null.host", "1", "unused", false)
+			w.Write([]byte(htmlContent))
+			return
 		}
 		if port == "" {
 			port = DEFAULT_GOPHER_PORT
@@ -432,10 +453,12 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 			// root menu has no originating item type
 			gType = '1'
 		} else {
-			http.Error(w, "missing gopher item type", http.StatusBadRequest)
+			synthetic := "3" + errMissingItemType + "\t\tnull.host\t1\n.\n"
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			htmlContent := formatMenuHTML(synthetic, "null.host", "1", "unused", false)
+			w.Write([]byte(htmlContent))
 			return
 		}
-
 	}
 
 	// Fetch content based on pipeline
@@ -448,12 +471,11 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		synthetic := fmt.Sprintf(
-			"3Connection failed: %s\t\t%s\t%s\n.\n",
-			err.Error(),
+			"3%s\t\t%s\t%s\n.\n",
+			fmt.Sprintf(errConnectionFailed, err.Error()),
 			host,
 			port,
 		)
-
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		htmlContent := formatMenuHTML(synthetic, host, port, selector, false)
 		w.Write([]byte(htmlContent))
@@ -495,7 +517,10 @@ func handleFocus(w http.ResponseWriter, r *http.Request) {
 	gopherURI := r.URL.Query().Get("uri")
 
 	if gopherURI == "" {
-		http.Error(w, "Missing 'uri' parameter.", http.StatusBadRequest)
+		synthetic := "3" + errMissingURI + "\t\tnull.host\t1\n.\n"
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		htmlContent := formatMenuHTML(synthetic, "null.host", "1", "unused", false)
+		w.Write([]byte(htmlContent))
 		return
 	}
 
