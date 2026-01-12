@@ -41,7 +41,8 @@ var menuRules = map[byte]menuRenderRule{
 	'4': {icon: "[HQX]"},
 	'5': {icon: "[DOS]"},
 	'6': {icon: "[UUE]"},
-	'7': {icon: "[ 7 ]"},
+	'7': {icon: "[SCH]"},
+	'9': {icon: "[BIN]"},
 	'g': {icon: "[GIF]"},
 	'I': {icon: "[IMG]"},
 	'i': {icon: "[ i ]", color: "gray"},
@@ -345,7 +346,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 				displayString,
 			))
 
-		case '4', '5', '6', 'g', 'I': // BinHex, DosBin, UUE, GIF, Generic Image (byte pipeline)
+		case '4', '5', '6', '9', 'g', 'I': // BinHex, DosBin, UUE, GIF, Generic Image (byte pipeline)
 			rule := menuRules[itemType]
 			writeLink(itemType, rule.icon, host, port, selector, displayString)
 
