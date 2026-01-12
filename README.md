@@ -7,45 +7,45 @@ Mainstream browsers have long since dumped Gopher compatibility, leaving a handf
 gofer for gopher is written in go for obvious reasons; namely, to avoid dependancies and virtual machines.
 
 ## build
+The gofer source is cross platform, and the core application (without OS wrapper) can be built using the go compiler from the source files in the root folder
 go build gofer
 
 ## use
-goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70). Using gopher from the CL *will not* register gopher:// with the OS!
+goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70). Using gopher from the CL *will not* register gopher:// with the OS.
+
+##wrappers
+Wrappers hide the CLI and register gopher:// with the OS for smoother browsing
 
 ### macos
-[macOS .app [arm64]](https://github.com/user-attachments/files/24388950/gofer.zip)
+Copy the app to your Applications folder to ensure that gopher:// is registered. 
 
-Copy the app to your Applications folder will ensure that gopher:// is registered. 
-
-MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the use pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
+MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the user pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
 
 ### windows
-in progress
+The windows wrapper lives in the tray. This wrapper is not quite ready for publishing, but is sufficienty far along that a power-user can compile it with .Net from the windows folder.
 
 ### linux (debian/gnome)
-
-<a href="https://github.com/iroll/gofer/blob/master/gofer_0.9-1%20debian/gofer_0.9-1_arm64.deb">Debian .deb [arm64]</a>
-
-The linux prebuild targets gnome on debian.
-
+The linux prebuilds target gnome on debian and are written in GTK. They have a similar look and feel to the macOS version but gnome handles gopher:// URLs more smoothly than macOS so the relaunch button isn't needed.
 
 ## list of supported item types
-The basic list of Gopher item types is provided below, as well as their current implementation status:
+The list of canonical Gopher item types is provided below, as well the exceptional non-standard types and their current implementation status:
 
-| Type Code | Description | Status |
-| :---: | :--- | :--- |
-| **0** | Text File | **[check!]** |
-| **1** | Menu or Directory | **[check!]** |
-| **2** | Ph/CSO Server | **[check! connect and search]** |
-| **3** | Error | **[check!]** |
-| **4** | BinHexed Macintosh file |**[check!]** |
-| **5** | DOS binary file archive |**[check!]** |
-| **6** | UNIX uuencoded file |**[check!]** |
-| **7** | Index-Search server |**[check!]** |
-| **8** | Telnet session | |
-| **9** | Binary file (nonspecific) |**[check!]** |
-| **+** | Redundant server | |
-| **T** | TN3270 session | |
-| **g** | A GIF format graphics file |**[check!]** |
-| **I** | Image file (nonspecific) |**[check!]** |
-| **?** | Non-standard Type Codes |**[check! as generic files]** |
+| Type Code | Description | Status | gofer typeIcon |
+| :---: | :--- | :--- | :--- |
+| **0** | Text File | ✅ | [TXT] |
+| **1** | Menu or Directory | ✅ | [ 1 ] |
+| **2** | Ph/CSO Server | ✅ connect and search | [PhC] |
+| **3** | Error | ✅ | [ERR] |
+| **4** | BinHexed Macintosh file | ✅ | [HQX] |
+| **5** | DOS binary file archive | ✅ | [DOS] |
+| **6** | UNIX uuencoded file | ✅ | [UUE] |
+| **7** | Index-Search server | ✅ | [SCH] |
+| **8** | Telnet session | ❌ | [TEL] |
+| **9** | Binary file (nonspecific) | ✅ | [BIN] |
+| **g** | A GIF format graphics file | ✅ | [GIF] |
+| **I** | Image file (nonspecific) | ✅ | [IMG] |
+| **T** | TN3270 session | ❌ | [327] |
+| **+** | Redundant server | ❌ | [RDN] |
+| **?** | Non-standard Type Codes | ✅ as generic files | [!X!] |
+| **h** | Non-standard, HTML URL (hURL) | ✅ html link | [!h!] |
+| **i** | Non-standard, Informational text | ✅ | [ i ] |
