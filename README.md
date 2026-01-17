@@ -47,5 +47,5 @@ The list of canonical (RFC 1436) Gopher item types is provided below, as well th
 | **T** | TN3270 session | ❌ | [327] |
 | **+** | Redundant server | ✅ | [SRV] |
 | **?** | Non-standard Type Codes | ✅ as generic files | [!X!] |
-| **h** | Non-standard, HTML URL (hURL) | ✅ html link | [!h!] |
+| **h** | Non-standard, HTML URL (hURL) | ✅ | [!h!] |
 | **i** | Non-standard, Informational text | ✅ | [ i ] |
