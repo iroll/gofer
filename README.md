@@ -13,13 +13,13 @@ go build gofer
 ## use
 goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70). Using gopher from the CL *will not* register gopher:// with the OS.
 
-##wrappers
+## wrappers
 Wrappers hide the CLI and register gopher:// with the OS for smoother browsing
 
 ### macos
 Copy the app to your Applications folder to ensure that gopher:// is registered. 
 
-MacOS has a quirk where the OS will only send a URL to a program on its first invocation; this doesn't affect normal gopher browsing unless the user pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
+MacOS has a quirk where the OS will only send a URL to an application on its first invocation; this doesn't affect normal gopher browsing unless the user pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
 
 ### windows
 The windows wrapper lives in the tray. This wrapper is not quite ready for publishing, but is sufficienty far along that a power-user can compile it with .Net from the windows folder.
