@@ -28,7 +28,7 @@ The windows wrapper lives in the tray. This wrapper is not quite ready for publi
 The linux prebuilds target gnome on debian and are written in GTK. They have a similar look and feel to the macOS version but gnome handles gopher:// URLs more smoothly than macOS so the relaunch button isn't needed.
 
 ## list of supported item types
-The list of canonical Gopher item types is provided below, as well the exceptional non-standard types and their current implementation status:
+The list of canonical (RFC 1436) Gopher item types is provided below, as well the exceptional non-standard types and their current implementation status:
 
 | Type Code | Description | Status | gofer typeIcon |
 | :---: | :--- | :--- | :--- |
@@ -45,7 +45,7 @@ The list of canonical Gopher item types is provided below, as well the exception
 | **g** | A GIF format graphics file | ✅ | [GIF] |
 | **I** | Image file (nonspecific) | ✅ | [IMG] |
 | **T** | TN3270 session | ❌ | [327] |
-| **+** | Redundant server | ❌ | [RDN] |
+| **+** | Redundant server | ✅ | [SRV] |
 | **?** | Non-standard Type Codes | ✅ as generic files | [!X!] |
 | **h** | Non-standard, HTML URL (hURL) | ✅ html link | [!h!] |
 | **i** | Non-standard, Informational text | ✅ | [ i ] |
