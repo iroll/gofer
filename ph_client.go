@@ -1,4 +1,5 @@
-// Ph Client for gofer 0.5 - 0.9
+// Ph Client 0.9.5
+// for gofer > 0.5
 // hewing as close to RFC 1436 (1998) as practical
 // (C) 2025 Isaac Roll
 // See github.com/iroll/gofer for license

@@ -5,14 +5,20 @@ i/ _` / _ \  _/ -_) '_| | (_-< / _` | / _` / _` | | ' \/ _` |_|	unused	null.host
 i\__, \___/_| \___|_|   |_/__/ \__,_|_\__, \__, |_|_||_\__, (_)	unused	null.host	1
 i|___/                                |___/|___/       |___/ 	unused	null.host	1
 i-----------------------------------------------------------------	unused	null.host	1
-iThis is the welcome page for gofer, your internet gopher getter	unused	null.host	1
+iThis is the landing page for gofer, your internet gopher getter!	unused	null.host	1
 iThe gofer project lives on github and	unused	null.host	1
 1the gofer project gopherhole	/users/iroll/gofer-project	sdf.org	70
 i-----------------------------------------------------------------	unused	null.host	1
-7Veronica 2 Search Engine	v2/vs	gopher.floodgap.com	70
+iPortals to explore gopherspace:	unused	null.host	1
+i----------------------	unused	null.host	1
+7Quarry - Gopher Index	quarry	gopher.icu	70
+iQuarry indexes several search engines and gopherspace portals to	unused	null.host	1
+imajor websites.	unused	null.host	1
+i----------------------	unused	null.host	1
+7Veronica-2 Search Engine	v2/vs	gopher.floodgap.com	70
+iVeronica-2 is estimated to index over 80% of gopherspace.	unused	null.host	1
 i-----------------------------------------------------------------	unused	null.host	1
-ipopular starting points:	unused	null.host	1
+iOther good starting points:	unused	null.host	1
 1SDF	/	sdf.org	70
 1Floodgap	/	gopher.floodgap.com	70
-1gopherpedia	/	gopherpedia.com	70
 .

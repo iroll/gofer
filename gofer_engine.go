@@ -1,4 +1,4 @@
-// gofer_engine 0.9
+// gofer_engine 0.9.5
 // network handler for gofer
 // (C) 2025 Isaac Roll
 // See github.com/iroll/gofer for license

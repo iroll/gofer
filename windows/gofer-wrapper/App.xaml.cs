@@ -150,7 +150,7 @@ namespace GoferWrapper
 
         private void OnAbout(object? sender, EventArgs e)
         {
-            MessageBox.Show("internet gopher getter\ngofer 0.9.2-1", "About");
+            MessageBox.Show("A Gopher protocol handler for Windows\ngofer 0.9.3-1", "About");
         }
 
 

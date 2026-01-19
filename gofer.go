@@ -1,4 +1,4 @@
-// gofer 0.9
+// gofer 0.9.5
 // a gopher helper for web browsers
 // hewing as close to RFC 1436 (1993) as practical
 // (C) 2025 Isaac Roll
@@ -43,6 +43,7 @@ var menuRules = map[byte]menuRenderRule{
 	'6': {icon: "[UUE]"},
 	'7': {icon: "[SCH]"},
 	'9': {icon: "[BIN]"},
+	'+': {icon: "[SRV]"},
 	'g': {icon: "[GIF]"},
 	'I': {icon: "[IMG]"},
 	'i': {icon: "[ i ]", color: "gray"},
@@ -365,6 +366,10 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 				"<p class=\"gopher-link\">[ 7 ]%s</p>\n",
 				link,
 			))
+
+		case '+': // Redundant server (links to alternate server)
+			rule := menuRules[itemType]
+			writeLink(itemType, rule.icon, host, port, selector, displayString)
 
 		case 'i': // Informational text (text pipeline)
 			rule := menuRules[itemType]

@@ -8,19 +8,19 @@
     "net8.0-windows7.0": []
   },
   "packageFolders": {
-    "C:\\Users\\uranium\\.nuget\\packages\\": {}
+    "/Users/lise/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\uranium\\gofer-app\\windows\\gofer-wrapper\\gofer-wrapper.csproj",
+      "projectUniqueName": "/Users/lise/gofer-app/windows/gofer-wrapper/gofer-wrapper.csproj",
       "projectName": "gofer-wrapper",
-      "projectPath": "C:\\Users\\uranium\\gofer-app\\windows\\gofer-wrapper\\gofer-wrapper.csproj",
-      "packagesPath": "C:\\Users\\uranium\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\uranium\\gofer-app\\windows\\gofer-wrapper\\obj\\",
+      "projectPath": "/Users/lise/gofer-app/windows/gofer-wrapper/gofer-wrapper.csproj",
+      "packagesPath": "/Users/lise/.nuget/packages/",
+      "outputPath": "/Users/lise/gofer-app/windows/gofer-wrapper/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\uranium\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "/Users/lise/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0-windows"
@@ -43,7 +43,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net8.0-windows7.0": {
@@ -59,6 +60,24 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[8.0.19, 8.0.19]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Host.osx-arm64",
+            "version": "[8.0.19, 8.0.19]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[8.0.19, 8.0.19]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Ref",
+            "version": "[8.0.19, 8.0.19]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
@@ -67,7 +86,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.416/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.304/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

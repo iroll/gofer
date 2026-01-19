@@ -1,4 +1,5 @@
-// search module for gofer 0.5 - 0.9
+// search module 0.9.5
+// for gofer > 0.5
 // provides access to, e.g., veronica servers
 // (C) 2025 Isaac Roll
 // See github.com/iroll/gofer for license
@@ -24,16 +25,11 @@ func HandleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	returnURL := r.URL.Query().Get("return")
-	if returnURL == "" {
-		returnURL = "/"
-	}
-
 	switch r.Method {
 
 	case http.MethodGet:
 		// GET = search landing page (no TCP, no menu)
-		html := renderSearchFrame("", host, port, selector, returnURL)
+		html := renderSearchFrame("", host, port, selector)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write([]byte(html))
 		return
@@ -58,7 +54,7 @@ func HandleSearch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		menuHTML := formatMenuHTML(rawMenu, host, port, selector, true)
-		html := renderSearchFrame(menuHTML, host, port, selector, returnURL)
+		html := renderSearchFrame(menuHTML, host, port, selector)
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write([]byte(html))
@@ -101,7 +97,7 @@ func SearchQuery(host, port, selector, query string) (string, error) {
 }
 
 // HTML UI formatting function
-func renderSearchFrame(innerHTML, host, port, selector, returnURL string) string {
+func renderSearchFrame(innerHTML, host, port, selector string) string {
 	var html strings.Builder
 
 	_ = selector
@@ -130,11 +126,7 @@ func renderSearchFrame(innerHTML, host, port, selector, returnURL string) string
 
 				.gopher-link:last-child {
 					margin-bottom: 1ch;
-				}
-				
-				.return { 
-					margin-top: 1ch;
-				} 				
+				}				
 				
 				.results { 
 					margin-top: 1ch;
@@ -185,13 +177,9 @@ func renderSearchFrame(innerHTML, host, port, selector, returnURL string) string
 			%s
 		</div>
 
-		<div class="return">
-			<a href="%s">Exit Search</a>
-		</div>
-
 		</body>
 		</html>
-`, host, port, innerHTML, returnURL))
+`, host, port, innerHTML))
 
 	return html.String()
 }
