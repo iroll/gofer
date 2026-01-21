@@ -31,7 +31,7 @@ namespace GoferWrapper
                 _tray = new NotifyIcon
                 {
                     Text = "gofer",
-                    Icon = System.Drawing.SystemIcons.Application,
+                    Icon = new System.Drawing.Icon("gofer.ico"),
                     Visible = true,
                     ContextMenuStrip = new ContextMenuStrip()
                 };
@@ -150,7 +150,7 @@ namespace GoferWrapper
 
         private void OnAbout(object? sender, EventArgs e)
         {
-            MessageBox.Show("A Gopher protocol handler for Windows\ngofer 0.9.3-1", "About");
+            MessageBox.Show("gofer\nthe internet gopher getter\nversion 0.9.5", "About");
         }
 
 
