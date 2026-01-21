@@ -14,21 +14,25 @@ go build gofer
 goper can be invoked from the command line or used with an OS-wrapper (preferred). from the CL: ./gofer gopher://url.url:port (typically port 70). Using gopher from the CL *will not* register gopher:// with the OS.
 
 ## wrappers
-Wrappers hide the CLI and register gopher:// with the OS for smoother browsing
+Wrappers hide the CLI and register gopher:// with the OS for smoother browsing. The wrappers below are packaged and provided in the project releases.
 
 ### macos
-Copy the app to your Applications folder to ensure that gopher:// is registered. 
+Unzip and copy the app to your Applications folder to ensure that gopher:// is registered.
 
-MacOS has a quirk where the OS will only send a URL to an application on its first invocation; this doesn't affect normal gopher browsing unless the user pops in and out of www and gopherspace. If a gopher link is clicked and the gofer window comes forward without launching the page, use the relaunch button and try again.
+When gofer is running under the wrapper, a small window with *home* and *quit* buttons is provided.
 
 ### windows
-The windows wrapper lives in the tray. This wrapper is not quite ready for publishing, but is sufficienty far along that a power-user can compile it with .Net from the windows folder.
+Unzip and launch *install.bat*, which will install gofer in LocalAppData and register gopher://.
+
+The windows wrapper lives in the tray, instead of a window.
 
 ### linux (debian/gnome)
-The linux prebuilds target gnome on debian and are written in GTK. They have a similar look and feel to the macOS version but gnome handles gopher:// URLs more smoothly than macOS so the relaunch button isn't needed.
+sudo apt install gofer.deb
+
+The linux prebuilds target gnome on debian and are written in GTK. They have a similar look and feel to the macOS version.
 
 ## list of supported item types
-The list of canonical (RFC 1436) Gopher item types is provided below, as well the exceptional non-standard types and their current implementation status:
+The list of canonical (RFC 1436) Gopher item types is provided below, as well as exceptional non-standard types and their current implementation status:
 
 | Type Code | Description | Status | gofer typeIcon |
 | :---: | :--- | :--- | :--- |
