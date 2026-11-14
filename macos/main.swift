@@ -1,6 +1,6 @@
-//  main.swift 0.9.5
+//  main.swift 0.9.6
 //  gofer wrapper for macOS written in Swift
-//  (C) 2025 Isaac Roll
+//  (C) 2025-2026 Isaac Roll
 
 import Cocoa
 
@@ -168,7 +168,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAbout(_ sender: Any?) {
         let alert = NSAlert()
         alert.messageText = "About gofer"
-        alert.informativeText = "internet gopher getter\nversion 0.9.5"
+        alert.informativeText = "internet gopher getter\nversion 0.9.6"
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }

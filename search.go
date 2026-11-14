@@ -1,7 +1,7 @@
-// search module 0.9.5
+// search module 0.9.6
 // for gofer > 0.5
 // provides access to, e.g., veronica servers
-// (C) 2025 Isaac Roll
+// (C) 2025-2026 Isaac Roll
 // See github.com/iroll/gofer for license
 
 package main
@@ -53,7 +53,7 @@ func HandleSearch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		menuHTML := formatMenuHTML(rawMenu, host, port, selector, true)
+		menuHTML := formatMenuHTML(rawMenu, host, port, selector, '7', true)
 		html := renderSearchFrame(menuHTML, host, port, selector)
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")

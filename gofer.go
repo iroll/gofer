@@ -1,7 +1,7 @@
-// gofer 0.9.5
+// gofer 0.9.6
 // a gopher helper for web browsers
 // hewing as close to RFC 1436 (1993) as practical
-// (C) 2025 Isaac Roll
+// (C) 2025-2026 Isaac Roll
 // See github.com/iroll/gofer for license
 
 package main
@@ -87,6 +87,23 @@ func launchBrowser(targetURL string) {
 	}
 }
 
+func localGopherURL(target GopherTarget) string {
+	query := url.Values{}
+	query.Set("host", target.Host)
+	query.Set("port", target.Port)
+	query.Set("selector", target.Selector)
+	query.Set("type", string(target.Type))
+	if target.BadItemType {
+		query.Set("badtype", "1")
+	}
+
+	return fmt.Sprintf("http://localhost:%s/?%s", LOCAL_SERVER_PORT, query.Encode())
+}
+
+func prependBadItemTypeWarning(menuText string) string {
+	return "3 Bad or missing item type\t\tnull.host\t1\n" + menuText
+}
+
 // --- serveLanding ---
 // provides the default home page
 
@@ -100,6 +117,7 @@ func serveLanding(w http.ResponseWriter, r *http.Request) {
 		"local",
 		"",
 		"/",
+		'1',
 		false,
 	)
 	w.Write([]byte(html))
@@ -109,7 +127,7 @@ func serveLanding(w http.ResponseWriter, r *http.Request) {
 // formatMenuHTML takes raw Gopher data and turns it into minimal HTML.
 // It requires the current host, port, and selector for form pre-filling and links.
 
-func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector string, embedded bool) string {
+func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector string, currentType byte, embedded bool) string {
 
 	// Start with the HTML boilerplate, including the input form at the top
 	var html strings.Builder
@@ -133,12 +151,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 	}
 
 	// 2. Construct the current Gopher URI for the input field's value
-	var currentGopherURI string
-	if currentSelector == "" {
-		currentGopherURI = fmt.Sprintf("%s:%s/", currentHost, currentPort)
-	} else {
-		currentGopherURI = fmt.Sprintf("%s:%s/%s", currentHost, currentPort, currentSelector)
-	}
+	currentGopherURI := fmt.Sprintf("%s:%s/%c%s", currentHost, currentPort, currentType, currentSelector)
 
 	// 3. The HTML/CSS framework
 	if !embedded {
@@ -148,7 +161,7 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 		<!DOCTYPE html>
 		<html>
 		<head>
-			<title>gofer - %s:%s%s</title>
+			<title>gofer - %s:%s/%c%s</title>
 			<style>
 			
 				:root { color-scheme: light dark; }
@@ -212,8 +225,8 @@ func formatMenuHTML(rawGopherData, currentHost, currentPort, currentSelector str
 		</div>
 
 	`,
-			// Arguments 1, 2, 3, 4: For the title and the URI input value
-			currentHost, currentPort, currentSelector, currentGopherURI))
+			// Arguments 1-4: For the title; argument 5 is the URI input value
+			currentHost, currentPort, currentType, currentSelector, currentGopherURI))
 	}
 
 	// 4. Process the lines from the Gopher response
@@ -413,10 +426,11 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 	gopherURI := query.Get("uri")
 
 	var (
-		host     string
-		port     string
-		selector string
-		gType    byte
+		host        string
+		port        string
+		selector    string
+		gType       byte
+		badItemType bool
 	)
 
 	// URI path takes precedence
@@ -431,19 +445,21 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 		port = target.Port
 		selector = target.Selector
 		gType = target.Type
+		badItemType = target.BadItemType
 
 	} else {
 		// Navigation via internal links
 		host = query.Get("host")
 		port = query.Get("port")
 		selector = query.Get("selector")
+		badItemType = query.Get("badtype") == "1"
 
 		selector = strings.TrimPrefix(selector, "/")
 
 		if host == "" {
 			synthetic := "3" + errMissingHost + "\t\tnull.host\t1\n.\n"
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			htmlContent := formatMenuHTML(synthetic, "null.host", "1", "unused", false)
+			htmlContent := formatMenuHTML(synthetic, "null.host", "1", "unused", '1', false)
 			w.Write([]byte(htmlContent))
 			return
 		}
@@ -461,7 +477,7 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 		} else {
 			synthetic := "3" + errMissingItemType + "\t\tnull.host\t1\n.\n"
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			htmlContent := formatMenuHTML(synthetic, "null.host", "1", "unused", false)
+			htmlContent := formatMenuHTML(synthetic, "null.host", "1", "unused", '1', false)
 			w.Write([]byte(htmlContent))
 			return
 		}
@@ -482,8 +498,11 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 			host,
 			port,
 		)
+		if badItemType {
+			synthetic = prependBadItemTypeWarning(synthetic)
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		htmlContent := formatMenuHTML(synthetic, host, port, selector, false)
+		htmlContent := formatMenuHTML(synthetic, host, port, selector, gType, false)
 		w.Write([]byte(htmlContent))
 		return
 	}
@@ -497,12 +516,20 @@ func serveGopher(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if badItemType {
+		engineResp.RawText = "[ERR] Bad or missing item type\n" + engineResp.RawText
+	}
+
 	// text pipeline content
 	// menu vs text is determined by type
 	if gType == '1' {
 		// menu
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		htmlContent := formatMenuHTML(engineResp.RawText, host, port, selector, false)
+		menuText := engineResp.RawText
+		if badItemType {
+			menuText = prependBadItemTypeWarning(menuText)
+		}
+		htmlContent := formatMenuHTML(menuText, host, port, selector, gType, false)
 		w.Write([]byte(htmlContent))
 		return
 	}
@@ -525,7 +552,7 @@ func handleFocus(w http.ResponseWriter, r *http.Request) {
 	if gopherURI == "" {
 		synthetic := "3" + errMissingURI + "\t\tnull.host\t1\n.\n"
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		htmlContent := formatMenuHTML(synthetic, "null.host", "1", "unused", false)
+		htmlContent := formatMenuHTML(synthetic, "null.host", "1", "unused", '1', false)
 		w.Write([]byte(htmlContent))
 		return
 	}
@@ -537,13 +564,7 @@ func handleFocus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	localURL := fmt.Sprintf(
-		"http://localhost:%s/?host=%s&port=%s&selector=%s",
-		LOCAL_SERVER_PORT,
-		target.Host,
-		target.Port,
-		url.QueryEscape(target.Selector),
-	)
+	localURL := localGopherURL(target)
 
 	// 3. Launch the browser to the new URL
 	// The browser will typically focus on the existing tab or open a new one.
@@ -583,13 +604,7 @@ func main() {
 	if rawInput != "" {
 		target, err := normalizeGopherInput(rawInput)
 		if err == nil {
-			initialGopherURL = fmt.Sprintf(
-				"http://localhost:%s/?host=%s&port=%s&selector=%s",
-				LOCAL_SERVER_PORT,
-				target.Host,
-				target.Port,
-				url.QueryEscape(target.Selector),
-			)
+			initialGopherURL = localGopherURL(target)
 		}
 	}
 

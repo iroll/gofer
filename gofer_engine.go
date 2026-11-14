@@ -1,6 +1,6 @@
-// gofer_engine 0.9.5
+// gofer_engine 0.9.6
 // network handler for gofer
-// (C) 2025 Isaac Roll
+// (C) 2025-2026 Isaac Roll
 // See github.com/iroll/gofer for license
 
 package main
@@ -15,10 +15,11 @@ import (
 )
 
 type GopherTarget struct {
-	Host     string
-	Port     string
-	Selector string
-	Type     byte
+	Host        string
+	Port        string
+	Selector    string
+	Type        byte
+	BadItemType bool
 }
 
 type GopherResponse struct {
@@ -80,17 +81,28 @@ func normalizeGopherInput(raw string) (GopherTarget, error) {
 		selector = strings.TrimPrefix(rawPath, "/")
 	}
 
-	// 5. Type inference
+	// 5. Separate the Gopher URL item type from the selector.
 	var t byte = '1'
-	if selector != "" && selector[0] >= '0' && selector[0] <= '9' {
-		t = selector[0]
+	badItemType := false
+	if selector != "" {
+		itemType := selector[0]
+		selector = selector[1:]
+
+		t = '0'
+		badItemType = true
+		switch itemType {
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', 'g', 'h', 'i', 'I', 'T', '?':
+			t = itemType
+			badItemType = false
+		}
 	}
 
 	gt = GopherTarget{
-		Host:     host,
-		Port:     port,
-		Selector: selector,
-		Type:     t,
+		Host:        host,
+		Port:        port,
+		Selector:    selector,
+		Type:        t,
+		BadItemType: badItemType,
 	}
 
 	return gt, nil
