@@ -4,7 +4,10 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <RootNamespace>gofer_wrapper</RootNamespace>
+    <RootNamespace>gofer</RootNamespace>
+    <AssemblyName>gofer</AssemblyName>
+    <ApplicationTitle>gofer</ApplicationTitle>
+    <Product>gofer</Product>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>

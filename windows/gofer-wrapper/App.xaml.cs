@@ -15,10 +15,31 @@ namespace GoferWrapper
     {
         private static readonly HttpClient http = new HttpClient();
         private NotifyIcon? _tray;
-        private Process? goferProcess;        
-        private string GoferPath =>
-            Path.GetFullPath(Path.Combine(
-                AppContext.BaseDirectory, "gofer.exe"));
+        private Process? goferProcess;
+        private string GoferIconPath => Path.Combine(AppContext.BaseDirectory, "gofer.ico");
+        private string GoferBackendPath => Path.Combine(AppContext.BaseDirectory, "gofer-backend.exe");
+
+        private string ResolveGoferBackendPath()
+        {
+            if (File.Exists(GoferBackendPath))
+            {
+                return GoferBackendPath;
+            }
+
+            string legacyWrapperPath = Path.Combine(AppContext.BaseDirectory, "gofer-wrapper.exe");
+            if (File.Exists(legacyWrapperPath))
+            {
+                return legacyWrapperPath;
+            }
+
+            string legacyGoferPath = Path.Combine(AppContext.BaseDirectory, "gofer.exe");
+            if (File.Exists(legacyGoferPath))
+            {
+                return legacyGoferPath;
+            }
+
+            return GoferBackendPath;
+        }
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -27,11 +48,10 @@ namespace GoferWrapper
 
             try
             {
-
                 _tray = new NotifyIcon
                 {
                     Text = "gofer",
-                    Icon = new System.Drawing.Icon("gofer.ico"),
+                    Icon = File.Exists(GoferIconPath) ? new System.Drawing.Icon(GoferIconPath) : null,
                     Visible = true,
                     ContextMenuStrip = new ContextMenuStrip()
                 };
@@ -44,23 +64,6 @@ namespace GoferWrapper
                 string? gopherUrl = e.Args.Length > 0 ? e.Args[0] : null;
 
                 EnsureGoferRunning(gopherUrl);
-
-                if (gopherUrl == null)
-                {
-                    _ = Task.Run(async () =>
-                    {
-                        await Task.Delay(300);
-                        try
-                        {
-                            Process.Start(new ProcessStartInfo
-                            {
-                                FileName = "http://localhost:8000/landing",
-                                UseShellExecute = true
-                            });
-                        }
-                        catch { }
-                    });
-                }
 
             }
             catch (Exception ex)
@@ -81,10 +84,11 @@ namespace GoferWrapper
             {
                 var psi = new ProcessStartInfo
                 {
-                    FileName = GoferPath,
+                    FileName = ResolveGoferBackendPath(),
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    WorkingDirectory = AppContext.BaseDirectory
                 };
 
                 if (!string.IsNullOrEmpty(gopherUrl))
@@ -150,7 +154,7 @@ namespace GoferWrapper
 
         private void OnAbout(object? sender, EventArgs e)
         {
-            MessageBox.Show("gofer\nthe internet gopher getter\nversion 0.9.5", "About");
+            MessageBox.Show("gofer\nthe internet gopher getter\nversion 0.9.6", "About");
         }
 
 

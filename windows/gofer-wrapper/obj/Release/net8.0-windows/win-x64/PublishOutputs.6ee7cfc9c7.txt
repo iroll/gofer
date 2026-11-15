@@ -1,0 +1,6 @@
+C:\Users\karl\gofer\windows\gofer-wrapper\bin\Release\net8.0-windows\win-x64\publish\gofer.exe
+C:\Users\karl\gofer\windows\gofer-wrapper\bin\Release\net8.0-windows\win-x64\publish\gofer.ico
+C:\Users\karl\gofer\windows\gofer-wrapper\bin\Release\net8.0-windows\win-x64\publish\gofer.dll
+C:\Users\karl\gofer\windows\gofer-wrapper\bin\Release\net8.0-windows\win-x64\publish\gofer.deps.json
+C:\Users\karl\gofer\windows\gofer-wrapper\bin\Release\net8.0-windows\win-x64\publish\gofer.runtimeconfig.json
+C:\Users\karl\gofer\windows\gofer-wrapper\bin\Release\net8.0-windows\win-x64\publish\gofer.pdb
