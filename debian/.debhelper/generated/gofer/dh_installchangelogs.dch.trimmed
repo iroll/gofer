@@ -1,0 +1,8 @@
+gofer (0.9.6-1) UNRELEASED; urgency=medium
+
+  [ uranium-iroll ]
+  * Correctly parses Gopher item types in gopher:// URLs; unknown or missing
+    types on non-root paths show a warning and fall back to text mode.
+  * Preserves and displays item types in gofer local URLs and page titles.
+
+ --  <karl@karl>  Sat, 15 Nov 2026 00:00:00 -0700

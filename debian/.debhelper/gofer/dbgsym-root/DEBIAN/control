@@ -1,0 +1,12 @@
+Package: gofer-dbgsym
+Source: gofer
+Version: 0.9.6-1
+Auto-Built-Package: debug-symbols
+Architecture: amd64
+Maintainer: Isaac Roll <iroll@sdf.org>
+Installed-Size: 2948
+Depends: gofer (= 0.9.6-1)
+Section: debug
+Priority: optional
+Description: debug symbols for gofer
+Build-Ids: 10d405abc68af3109fc765974c180b0a029b19d7 cb78ef87ec9e4d662ab4b8c55abf399e880eeef1

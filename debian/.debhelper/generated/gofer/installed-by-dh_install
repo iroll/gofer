@@ -1,0 +1,4 @@
+./debian/tmp/usr/bin/gofer
+./debian/tmp/usr/bin/gofer-wrapper
+./debian/tmp/usr/share/icons/hicolor
+./debian/tmp/usr/share/applications/com.iroll.gofer.desktop
